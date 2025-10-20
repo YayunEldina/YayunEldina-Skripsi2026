@@ -2,10 +2,10 @@
 ---
 
 ## ⚙️ Teknologi yang Digunakan
-- Bahasa Pemrograman: *-*
-- Framework: *[misalnya Laravel / Flutter / React.js,  Next.js*
-- Database: * MySQL*
-- Tools Pendukung: *Zotero, Mendeley, GitHub, Visual Studio Code, Figma*
+- Bahasa Pemrograman: CSS/JavaScript/HTML
+- Framework: React.js/Laravel
+- Database: MySQL
+- Tools Pendukung: Zotero, Mendeley, GitHub, Visual Studio Code, Figma, draw.io
 
 ---
 
