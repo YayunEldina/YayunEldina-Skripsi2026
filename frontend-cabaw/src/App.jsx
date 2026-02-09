@@ -4,6 +4,7 @@ import Register from "./pages/auth/register";
 import Login from "./pages/auth/login"; 
 import Dashboard from "./pages/admin/dashboard/dashboard";
 import TransaksiPenjualan from "./pages/admin/transaksipenjualan/TransaksiPenjualan";
+import Alternatif from "./pages/admin/alternatif/alternatif";
 
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/transaksi" element={<TransaksiPenjualan />} />
+        <Route path="/admin/alternatif" element={<Alternatif />} />
       </Routes>
     </BrowserRouter>
   );
