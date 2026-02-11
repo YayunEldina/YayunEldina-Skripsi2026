@@ -38,8 +38,8 @@ export const SidebarNavigationSection = () => {
           icon={DashboardIcon}
           label="Dashboard"
           vectorIcon={VectorBukaIcon}
-          active={location.pathname === "/dashboard"}
-          onClick={() => navigate("/dashboard")}
+          active={location.pathname === "/admin/dashboard"}
+          onClick={() => navigate("/admin/dashboard")}
         />
 
         <MenuItem

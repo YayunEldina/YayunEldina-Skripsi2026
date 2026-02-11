@@ -1,24 +1,35 @@
+import { Link } from "react-router-dom";
+
 export default function LandingPage() {
   return (
     <main className="bg-white text-gray-900">
 
       {/* ================= NAVBAR ================= */}
       <nav className="flex items-center justify-between px-16 py-6">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gray-300 rounded" />
-          <div>
-            <p className="font-bold text-sm">Cabaw</p>
-            <p className="text-xs text-gray-500">Krupuk Cap Bawang</p>
-          </div>
-        </div>
+  <div className="flex items-center gap-2">
+    <div className="w-8 h-8 bg-gray-300 rounded" />
+    <div>
+      <p className="font-bold text-sm">Cabaw</p>
+      <p className="text-xs text-gray-500">Krupuk Cap Bawang</p>
+    </div>
+  </div>
 
-        <ul className="flex items-center gap-8 text-sm">
-          <li className="font-semibold">Beranda</li>
-          <li>Tentang Kami</li>
-          <li>FAQ</li>
-          <li className="font-semibold">Login</li>
-        </ul>
-      </nav>
+  <ul className="flex items-center gap-8 text-sm">
+    <li className="font-semibold cursor-pointer">Beranda</li>
+    <li className="cursor-pointer">Tentang Kami</li>
+    <li className="cursor-pointer">FAQ</li>
+
+    {/* LOGIN */}
+    <li className="font-semibold">
+      <Link
+        to="/login"
+        className="hover:text-[#1E3A8A] transition"
+      >
+        Login
+      </Link>
+    </li>
+  </ul>
+</nav>
 
       {/* ================= HERO ================= */}
       <section className="px-16 py-16 grid grid-cols-2 gap-10 items-start">
