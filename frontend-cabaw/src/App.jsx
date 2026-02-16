@@ -10,6 +10,7 @@ import Perhitungan from "./pages/admin/perhitungan/perhitungan";
 import Ranking from "./pages/admin/ranking/ranking";
 import Pemesanan from "./pages/member/pemesanan/pemesanan";
 import DashboardMember from "./pages/member/dashboard/dashboard";
+import TambahTransaksiPenjualan from "./pages/admin/transaksipenjualan/TambahTransaksiPenjualan";
 
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin/dashboard" element={<DashboardAdmin />} />
         <Route path="/admin/transaksi" element={<TransaksiPenjualan />} />
+        <Route path="/admin/tambah/transaksi" element={<TambahTransaksiPenjualan />} />
         <Route path="/admin/alternatif" element={<Alternatif />} />
         <Route path="/admin/kriteria" element={<Kriteria />} />
         <Route path="/admin/perhitungan" element={<Perhitungan />} />
