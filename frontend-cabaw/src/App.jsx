@@ -11,6 +11,7 @@ import Ranking from "./pages/admin/ranking/ranking";
 import Pemesanan from "./pages/member/pemesanan/pemesanan";
 import DashboardMember from "./pages/member/dashboard/dashboard";
 import TambahTransaksiPenjualan from "./pages/admin/transaksipenjualan/TambahTransaksiPenjualan";
+import EditTransaksiPenjualan from "./pages/admin/transaksipenjualan/EditTransaksiPenjualan";
 
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/admin/dashboard" element={<DashboardAdmin />} />
         <Route path="/admin/transaksi" element={<TransaksiPenjualan />} />
         <Route path="/admin/tambah/transaksi" element={<TambahTransaksiPenjualan />} />
+        <Route path="/admin/edit/transaksi" element={<EditTransaksiPenjualan />} />
         <Route path="/admin/alternatif" element={<Alternatif />} />
         <Route path="/admin/kriteria" element={<Kriteria />} />
         <Route path="/admin/perhitungan" element={<Perhitungan />} />
