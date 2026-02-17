@@ -15,26 +15,27 @@ const dataDummy = Array.from({ length: 10 }, (_, i) => ({
   bulan: 1,
   tahun: 2021,
   jenis: "Uyel Putih",
+  hargaPcs: "Rp 2.500", // ✅ TAMBAHAN
   total: 20,
-  harga: "Rp. 50.000",
+  harga: "Rp 50.000",
   tempat: "Pasar",
 }));
 
 const TransaksiPenjualan = () => {
   return (
     <div className="flex min-h-screen bg-white">
-  {/* SIDEBAR */}
-  <SidebarNavigationSection />
+      {/* SIDEBAR */}
+      <SidebarNavigationSection />
 
-  {/* CONTENT */}
-  <div className="flex-1 ml-[280px] pt-[80px]">
-    {/* NAVBAR */}
-    <NavbarAdmin />
+      {/* CONTENT */}
+      <div className="flex-1 ml-[280px] pt-[80px]">
+        {/* NAVBAR */}
+        <NavbarAdmin />
 
-    {/* TANGGAL + SEARCH */}
-    <div className="px-0 pt-4">
-      <TampilanElemen />
-    </div>
+        {/* TANGGAL + SEARCH */}
+        <div className="px-0 pt-4">
+          <TampilanElemen />
+        </div>
 
         {/* FILTER + BUTTON */}
         <div className="flex items-center justify-between px-8 mt-6">
@@ -61,7 +62,7 @@ const TransaksiPenjualan = () => {
 
         {/* TABLE */}
         <div className="px-8 mt-6">
-        <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden">
+          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-[#F1F5F9] text-slate-700">
                 <tr>
@@ -72,6 +73,7 @@ const TransaksiPenjualan = () => {
                   <th className="px-4 py-3 text-left">Bulan</th>
                   <th className="px-4 py-3 text-left">Tahun</th>
                   <th className="px-4 py-3 text-left">Jenis Krupuk</th>
+                  <th className="px-4 py-3 text-left">Harga / Pcs</th> {/* ✅ KOLOM BARU */}
                   <th className="px-4 py-3 text-left">Total Pembelian</th>
                   <th className="px-4 py-3 text-left">Total Harga</th>
                   <th className="px-4 py-3 text-left">Tempat Transaksi</th>
@@ -81,7 +83,10 @@ const TransaksiPenjualan = () => {
 
               <tbody>
                 {dataDummy.map((item, i) => (
-                 <tr className="border-t border-[#E5E5EA] hover:bg-slate-50 transition">
+                  <tr
+                    key={i}
+                    className="border-t border-[#E5E5EA] hover:bg-slate-50 transition"
+                  >
                     <td className="px-4 py-3">{item.no}</td>
                     <td className="px-4 py-3">{item.nama}</td>
                     <td className="px-4 py-3">{item.jk}</td>
@@ -89,6 +94,7 @@ const TransaksiPenjualan = () => {
                     <td className="px-4 py-3">{item.bulan}</td>
                     <td className="px-4 py-3">{item.tahun}</td>
                     <td className="px-4 py-3">{item.jenis}</td>
+                    <td className="px-4 py-3">{item.hargaPcs}</td> {/* ✅ DATA BARU */}
                     <td className="px-4 py-3">{item.total}</td>
                     <td className="px-4 py-3">{item.harga}</td>
                     <td className="px-4 py-3">{item.tempat}</td>
