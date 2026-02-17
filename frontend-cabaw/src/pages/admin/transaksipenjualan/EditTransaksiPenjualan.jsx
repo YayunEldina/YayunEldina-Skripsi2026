@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import SidebarNavigation from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 import TampilanElemen from "../dashboard/TampilanElemen";
 
 export default function EditTransaksiPenjualan() {
+  const navigate = useNavigate();
   // ==============================
   // SIMULASI DATA LAMA
   // ==============================
@@ -331,7 +333,10 @@ export default function EditTransaksiPenjualan() {
             </div>
 
             <div className="flex justify-end gap-4 mt-16">
-              <button className="px-6 py-3 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100">
+            <button
+                onClick={() => navigate("/admin/transaksi")}
+                className="px-6 py-3 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100"
+              >
                 Batal
               </button>
 

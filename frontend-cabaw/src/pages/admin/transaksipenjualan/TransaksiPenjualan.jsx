@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 import TampilanElemen from "../dashboard/TampilanElemen";
@@ -15,13 +17,15 @@ const dataDummy = Array.from({ length: 10 }, (_, i) => ({
   bulan: 1,
   tahun: 2021,
   jenis: "Uyel Putih",
-  hargaPcs: "Rp 2.500", // ✅ TAMBAHAN
+  hargaPcs: "Rp 2.500",
   total: 20,
   harga: "Rp 50.000",
   tempat: "Pasar",
 }));
 
 const TransaksiPenjualan = () => {
+  const navigate = useNavigate(); // ✅ INIT NAVIGATE
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* SIDEBAR */}
@@ -54,7 +58,11 @@ const TransaksiPenjualan = () => {
             ))}
           </div>
 
-          <button className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90">
+          {/* ✅ TOMBOL TAMBAH */}
+          <button
+            onClick={() => navigate("/admin/tambah/transaksi")}
+            className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90"
+          >
             <img src={tambahIcon} alt="tambah" className="w-4 h-4" />
             Tambah transaksi
           </button>
@@ -73,7 +81,7 @@ const TransaksiPenjualan = () => {
                   <th className="px-4 py-3 text-left">Bulan</th>
                   <th className="px-4 py-3 text-left">Tahun</th>
                   <th className="px-4 py-3 text-left">Jenis Krupuk</th>
-                  <th className="px-4 py-3 text-left">Harga / Pcs</th> {/* ✅ KOLOM BARU */}
+                  <th className="px-4 py-3 text-left">Harga / Pcs</th>
                   <th className="px-4 py-3 text-left">Total Pembelian</th>
                   <th className="px-4 py-3 text-left">Total Harga</th>
                   <th className="px-4 py-3 text-left">Tempat Transaksi</th>
@@ -94,22 +102,34 @@ const TransaksiPenjualan = () => {
                     <td className="px-4 py-3">{item.bulan}</td>
                     <td className="px-4 py-3">{item.tahun}</td>
                     <td className="px-4 py-3">{item.jenis}</td>
-                    <td className="px-4 py-3">{item.hargaPcs}</td> {/* ✅ DATA BARU */}
+                    <td className="px-4 py-3">{item.hargaPcs}</td>
                     <td className="px-4 py-3">{item.total}</td>
                     <td className="px-4 py-3">{item.harga}</td>
                     <td className="px-4 py-3">{item.tempat}</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-2">
+
+                        {/* ✅ LIHAT */}
                         <img
                           src={lihatIcon}
                           alt="lihat"
+                          onClick={() =>
+                            navigate("/admin/lihat/transaksi")
+                          }
                           className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer"
                         />
+
+                        {/* ✅ EDIT */}
                         <img
                           src={editIcon}
                           alt="edit"
+                          onClick={() =>
+                            navigate("/admin/edit/transaksi")
+                          }
                           className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer"
                         />
+
+                        {/* HAPUS (belum diubah) */}
                         <img
                           src={hapusIcon}
                           alt="hapus"
