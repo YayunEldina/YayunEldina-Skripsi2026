@@ -14,7 +14,6 @@ class Produk extends Model
         'nama_produk',
         'harga',
         'kategori',
-        'stok'
     ];
 
     // Relasi ke DetailTransaksi

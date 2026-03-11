@@ -6,28 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
-{
-    Schema::create('transaksi', function (Blueprint $table) {
-        $table->id('id_transaksi');
-        $table->date('tanggal');
-        $table->decimal('total_harga', 12, 2);
-        $table->string('alamat_kirim', 100);
-        $table->unsignedBigInteger('id_pelanggan');
-        $table->foreign('id_pelanggan')
-              ->references('id_pelanggan')
-              ->on('pelanggan')
-              ->onDelete('cascade');
-        $table->timestamps();
-    });
-}
+    public function up(): void
+    {
+        Schema::create('transaksi', function (Blueprint $table) {
+            $table->string('id_transaksi', 10)->primary();
 
-    /**
-     * Reverse the migrations.
-     */
+            $table->date('tanggal');
+
+            $table->integer('total_pembelian')->default(0);
+            $table->decimal('total_harga', 12, 2)->default(0);
+
+            $table->string('tempat_transaksi', 100);
+
+            $table->string('id_pelanggan', 10);
+            $table->foreign('id_pelanggan')
+                  ->references('id_pelanggan')
+                  ->on('pelanggan')
+                  ->onDelete('cascade');
+
+            $table->timestamps();
+        });
+    }
+
     public function down(): void
     {
         Schema::dropIfExists('transaksi');

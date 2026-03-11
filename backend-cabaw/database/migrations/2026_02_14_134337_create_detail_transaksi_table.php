@@ -6,35 +6,31 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up()
     {
         Schema::create('detail_transaksi', function (Blueprint $table) {
-            $table->id('id_detail');
+            $table->string('id_detail', 10)->primary();
+
             $table->integer('jumlah');
             $table->decimal('sub_total', 12, 2);
-            $table->unsignedBigInteger('id_produk');
-            $table->unsignedBigInteger('id_transaksi');
-    
+
+            $table->string('id_produk', 10);
+            $table->string('id_transaksi', 10);
+            
             $table->foreign('id_produk')
                   ->references('id_produk')
                   ->on('produk')
                   ->onDelete('cascade');
-    
+
             $table->foreign('id_transaksi')
                   ->references('id_transaksi')
                   ->on('transaksi')
                   ->onDelete('cascade');
-    
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('detail_transaksi');
