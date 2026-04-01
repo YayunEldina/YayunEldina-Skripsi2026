@@ -5,5 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ImportController;
 
+// Route untuk Login (Admin & Pelanggan)
 Route::post('/login', [AuthController::class, 'login']);
+// Route untuk Signup Admin
+Route::post('/signup-admin', [AuthController::class, 'signupAdmin']);
 Route::post('/import-semua', [ImportController::class, 'importSemua']);
