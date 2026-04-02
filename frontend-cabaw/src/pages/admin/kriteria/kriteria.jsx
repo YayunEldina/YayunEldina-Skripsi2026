@@ -1,76 +1,64 @@
+import { useState, useEffect } from "react"; // Tambahkan useState & useEffect
 import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 import TampilanElemen from "../dashboard/TampilanElemen";
 
-const dataKriteria = [
-  {
-    kode: "C1",
-    nama: "Total Pembelian",
-    bobot: 5,
-    fuzzy: "(0.75, 1.00, 1.00)",
-    atribut: "Benefit",
-  },
-  {
-    kode: "C2",
-    nama: "Total Pendapatan",
-    bobot: 4,
-    fuzzy: "(0.50, 0.75, 1.00)",
-    atribut: "Benefit",
-  },
-  {
-    kode: "C3",
-    nama: "Frekuensi Transaksi",
-    bobot: 4,
-    fuzzy: "(0.50, 0.75, 1.00)",
-    atribut: "Benefit",
-  },
-  {
-    kode: "C4",
-    nama: "Variabilitas Pembelian",
-    bobot: 3,
-    fuzzy: "(0.25, 0.50, 0.75)",
-    atribut: "Cost",
-  },
-];
-
-const dataKeterangan = [
-  {
-    nama: "Total Unit Terjual",
-    keterangan:
-      "Jumlah keseluruhan produk yang dibeli pelanggan dalam periode tertentu. Semakin besar total pembelian, semakin tinggi kontribusi pelanggan terhadap volume penjualan UMKM.",
-  },
-  {
-    nama: "Jumlah Pembeli",
-    keterangan:
-      "Besarnya omzet yang dihasilkan dari transaksi pelanggan. Nilai yang lebih tinggi menunjukkan kontribusi finansial yang lebih besar bagi keberlangsungan usaha.",
-  },
-  {
-    nama: "Frekuensi Transaksi",
-    keterangan:
-      "Jumlah transaksi yang dilakukan pelanggan dalam periode tertentu. Semakin sering pelanggan bertransaksi, semakin tinggi tingkat loyalitas dan kontribusinya.",
-  },
-  {
-    nama: "Variabilitas Penjualan",
-    keterangan:
-      "Tingkat kestabilan jumlah pembelian pelanggan dari bulan ke bulan.",
-  },
-];
-
 const Kriteria = () => {
+  // 1. Buat state untuk menampung data dari backend
+  const [dataKriteria, setDataKriteria] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. Ambil data dari backend saat halaman dimuat
+  useEffect(() => {
+    const fetchKriteria = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/kriterias");
+        const data = await response.json();
+        setDataKriteria(data);
+      } catch (error) {
+        console.error("Gagal mengambil data kriteria:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchKriteria();
+  }, []);
+
+  // Data keterangan tetap manual karena biasanya deskripsi panjang tidak disimpan di tabel utama kriteria
+  const dataKeterangan = [
+    {
+      nama: "Total Pembelian",
+      keterangan: "Jumlah keseluruhan produk yang dibeli pelanggan dalam periode tertentu.",
+    },
+    {
+      nama: "Total Pendapatan",
+      keterangan: "Besarnya omzet yang dihasilkan dari transaksi pelanggan.",
+    },
+    {
+      nama: "Frekuensi Transaksi",
+      keterangan: "Jumlah transaksi yang dilakukan pelanggan dalam periode tertentu.",
+    },
+    {
+      nama: "Variabilitas Pembelian",
+      keterangan: "Tingkat kestabilan jumlah pembelian pelanggan dari bulan ke bulan.",
+    },
+  ];
+
   return (
     <div className="flex min-h-screen bg-white">
-    {/* SIDEBAR */}
-    <SidebarNavigationSection />
-  
-    {/* CONTENT */}
-    <div className="flex-1 ml-[280px] pt-[50px]">
-      {/* NAVBAR */}
-      <NavbarAdmin />
-  
-      {/* TANGGAL + SEARCH */}
-      <div className="px-0 pt-4">
-        <TampilanElemen />
-      </div>
+      {/* SIDEBAR */}
+      <SidebarNavigationSection />
+
+      {/* CONTENT */}
+      <div className="flex-1 ml-[280px] pt-[50px]">
+        {/* NAVBAR */}
+        <NavbarAdmin />
+
+        {/* TANGGAL + SEARCH */}
+        <div className="px-0 pt-4">
+          <TampilanElemen />
+        </div>
 
         {/* TITLE */}
         <div className="px-8 mt-6">
@@ -93,33 +81,31 @@ const Kriteria = () => {
                 </tr>
               </thead>
               <tbody>
-                {dataKriteria.map((item, i) => (
-                  <tr key={i} className="border-t border-[#E5E5EA]">
-                    <td className="px-4 py-3 text-center">
-                      {item.kode}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {item.nama}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {item.bobot}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {item.fuzzy}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`px-4 py-1 rounded-full text-xs font-medium ${
-                          item.atribut === "Benefit"
-                            ? "bg-green-200 text-green-700"
-                            : "bg-red-200 text-red-700"
-                        }`}
-                      >
-                        {item.atribut}
-                      </span>
-                    </td>
+                {loading ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4">Memuat data...</td>
                   </tr>
-                ))}
+                ) : (
+                  dataKriteria.map((item, i) => (
+                    <tr key={i} className="border-t border-[#E5E5EA]">
+                      <td className="px-4 py-3 text-center">{item.kode_kriteria}</td>
+                      <td className="px-4 py-3 text-center">{item.nama_kriteria}</td>
+                      <td className="px-4 py-3 text-center">{item.bobot}</td>
+                      <td className="px-4 py-3 text-center">{item.bobot_fuzzy}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`px-4 py-1 rounded-full text-xs font-medium ${
+                            item.atribut === "Benefit"
+                              ? "bg-green-200 text-green-700"
+                              : "bg-red-200 text-red-700"
+                          }`}
+                        >
+                          {item.atribut}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -138,12 +124,8 @@ const Kriteria = () => {
               <tbody>
                 {dataKeterangan.map((item, i) => (
                   <tr key={i} className="border-t border-[#E5E5EA]">
-                    <td className="px-4 py-3 text-center font-medium">
-                      {item.nama}
-                    </td>
-                    <td className="px-4 py-3 text-justify">
-                      {item.keterangan}
-                    </td>
+                    <td className="px-4 py-3 text-center font-medium">{item.nama}</td>
+                    <td className="px-4 py-3 text-justify">{item.keterangan}</td>
                   </tr>
                 ))}
               </tbody>
