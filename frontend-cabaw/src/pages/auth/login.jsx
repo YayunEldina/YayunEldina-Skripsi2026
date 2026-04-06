@@ -1,6 +1,6 @@
 import { useState } from "react";
 import coverImg from "../../assets/cover.png";
-import { useNavigate } from "react-router-dom"; // Import navigasi
+import { useNavigate } from "react-router-dom";
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -33,14 +33,16 @@ export const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Simpan data penting ke localStorage
+        // --- BAGIAN PENTING: SINKRONISASI KEY ---
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("userRole", data.role);
-        localStorage.setItem("userData", JSON.stringify(data.user));
+        
+        // Kita simpan dengan key "user" (bukan userData) agar terbaca oleh Navbar & Pemesanan
+        localStorage.setItem("user", JSON.stringify(data.user)); 
 
         alert(`Login Berhasil! Selamat datang, ${data.user.nama_admin || data.user.nama_pelanggan}`);
         
-        // Arahkan halaman berdasarkan role dari backend
+        // Navigasi berdasarkan Role
         if (data.role === "admin") {
           navigate("/admin/dashboard");
         } else {
@@ -72,7 +74,6 @@ export const Login = () => {
             </p>
           </div>
 
-          {/* IMAGE */}
           <div className="absolute bottom-[-20px] right-[-100px] w-[90%] h-[78%]">
             <img
               src={coverImg}
