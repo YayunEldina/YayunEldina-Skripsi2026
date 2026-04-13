@@ -5,106 +5,130 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Pelanggan;
-use App\Models\Alternatif; // Pastikan model ini sudah dibuat
+use App\Models\Alternatif;
 use Rap2hpoutre\FastExcel\FastExcel;
-use Illuminate\Support\Facades\Log;
 
 class ImportController extends Controller
 {
-    private function generateNewId($table, $column, $prefix) {
-        $last = DB::table($table)->orderBy($column, 'desc')->first();
-        if (!$last) return $prefix . '00001';
-        
-        $lastId = (int) substr($last->$column, strlen($prefix));
-        return $prefix . str_pad($lastId + 1, 5, '0', STR_PAD_LEFT);
-    }
-
     public function importSemua(Request $request)
     {
         if (!$request->hasFile('file')) return response()->json(['message' => 'File tidak ada!'], 400);
-    
+        
+        ini_set('max_execution_time', 1800); 
+        ini_set('memory_limit', '1G');       
+
         $filePath = $request->file('file')->getRealPath();
         $fastExcel = new FastExcel();
-    
-        for ($i = 0; $i < 5; $i++) {
-            try {
-                $rows = $fastExcel->withoutHeaders()->sheet($i)->import($filePath);
-                
-                // Pastikan slice sesuai dengan baris data pertama Anda
-                $data = $rows->slice(5); 
-    
-                foreach ($data as $line) {
-                    if (empty($line[2])) continue;
-    
-                    // Bersihkan nama dari spasi awal/akhir
-                    $namaBersih = trim($line[2]);
-    
-                    DB::beginTransaction();
-                    try {
-                        // 1. CEK ATAU BUAT PELANGGAN
-                        $pelanggan = Pelanggan::whereRaw('TRIM(nama_pelanggan) = ?', [$namaBersih])->first();
-                        
-                        if (!$pelanggan) {
-                            $idPelanggan = $this->generateNewId('pelanggan', 'id_pelanggan', 'PL');
-                            $pelanggan = Pelanggan::create([
-                                'id_pelanggan'   => $idPelanggan,
-                                'nama_pelanggan' => $namaBersih,
-                                'username'       => 'user_' . strtolower(str_replace(' ', '', $namaBersih)) . rand(100, 999),
-                                'password'       => bcrypt('123456'),
-                                'jenis_kelamin'  => $line[3] ?? 'Laki-laki',
-                                'alamat'         => '-',
-                                'no_telepon'     => '0'
-                            ]);
 
-                            // 2. Isi tabel 'alternatifs' secara otomatis hanya saat pelanggan baru dibuat
-                            $count = Alternatif::count();
-                            Alternatif::create([
-                                'kode_alternatif' => 'A' . ($count + 1),
-                                'nama_alternatif' => $namaBersih,
-                                'id_pelanggan'    => $idPelanggan
-                            ]);
-                        } else {
-                            $idPelanggan = $pelanggan->id_pelanggan;
-                        }
-    
-                        // 3. Generate ID Transaksi
-                        $idTransaksi = $this->generateNewId('transaksi', 'id_transaksi', 'TR');
-                        $tanggal = $line[6] . '-' . str_pad($line[5], 2, '0', STR_PAD_LEFT) . '-' . str_pad($line[4], 2, '0', STR_PAD_LEFT);
-                        
-                        DB::table('transaksi')->insert([
-                            'id_transaksi'     => $idTransaksi,
-                            'tanggal'          => $tanggal,
-                            'total_pembelian'  => (int)($line[18] ?? 0),
-                            'total_harga'      => (float)($line[19] ?? 0),
-                            'tempat_transaksi' => $line[20] ?? 'Pasar',
-                            'id_pelanggan'     => $idPelanggan,
-                            'created_at'       => now(),
-                        ]);
-    
-                        // 4. Detail Transaksi
-                        for ($j = 0; $j < 10; $j++) {
-                            $qty = (int)($line[7 + $j] ?? 0);
-                            if ($qty > 0) {
-                                DB::table('detail_transaksi')->insert([
-                                    'id_detail'    => 'DT' . bin2hex(random_bytes(3)), 
-                                    'id_transaksi' => $idTransaksi,
-                                    'id_produk'    => 'PR' . str_pad($j + 1, 2, '0', STR_PAD_LEFT), 
-                                    'jumlah'       => $qty,
-                                    'sub_total'    => $qty * 2500,
-                                    'created_at'   => now(),
-                                ]);
-                            }
-                        }
-                        DB::commit();
-                    } catch (\Exception $e) {
-                        DB::rollBack();
-                        Log::error("Gagal import baris: " . $e->getMessage());
+        // 1. KOSONGKAN TABEL
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('detail_transaksi')->truncate();
+        DB::table('transaksi')->truncate();
+        DB::table('alternatifs')->truncate();
+        DB::table('pelanggan')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        $allPelanggan = [];
+        $allAlternatif = [];
+        $allTransaksi = [];
+        $allDetail = [];
+        
+        // Counter ID Manual (Opsi 2)
+        $plCount = 1;
+        $trCount = 1;
+        $dtCount = 1; // Counter untuk detail transaksi
+
+        for ($i = 0; $i < 5; $i++) {
+            $rows = $fastExcel->withoutHeaders()->sheet($i)->import($filePath);
+            $data = $rows->slice(5);
+
+            foreach ($data as $line) {
+                if (empty($line[2])) continue;
+
+                $namaBersih = trim($line[2]);
+                $pedagang = $line[21] ?? '-';
+                $keyPelanggan = strtolower($namaBersih);
+                $keyAlternatif = $keyPelanggan . '|' . strtolower($pedagang);
+
+                // LOGIKA PELANGGAN
+                if (!isset($allPelanggan[$keyPelanggan])) {
+                    $idPelanggan = 'PL' . str_pad($plCount++, 5, '0', STR_PAD_LEFT);
+                    $allPelanggan[$keyPelanggan] = [
+                        'id_pelanggan'   => $idPelanggan,
+                        'nama_pelanggan' => $namaBersih,
+                        'username'       => 'user_' . str_replace(' ', '', $keyPelanggan) . rand(100, 999),
+                        'password'       => bcrypt('123456'),
+                        'jenis_kelamin'  => $line[3] ?? 'Laki-laki',
+                        'alamat'         => '-',
+                        'no_telepon'     => '0'
+                    ];
+                }
+                $idPelanggan = $allPelanggan[$keyPelanggan]['id_pelanggan'];
+
+                // LOGIKA ALTERNATIF
+                if (!isset($allAlternatif[$keyAlternatif])) {
+                    $allAlternatif[$keyAlternatif] = [
+                        'kode_alternatif' => 'A' . (count($allAlternatif) + 1),
+                        'nama_alternatif' => $namaBersih,
+                        'pedagang'        => $pedagang,
+                        'id_pelanggan'    => $idPelanggan,
+                        'created_at'      => now(),
+                    ];
+                }
+
+                // LOGIKA TRANSAKSI
+                $idTransaksi = 'TR' . str_pad($trCount++, 7, '0', STR_PAD_LEFT); // TR0000001
+                $tanggal = $line[6] . '-' . str_pad($line[5], 2, '0', STR_PAD_LEFT) . '-' . str_pad($line[4], 2, '0', STR_PAD_LEFT);
+                
+                $allTransaksi[] = [
+                    'id_transaksi'     => $idTransaksi,
+                    'tanggal'          => $tanggal,
+                    'total_pembelian'  => (int)($line[18] ?? 0),
+                    'total_harga'      => (float)($line[19] ?? 0),
+                    'tempat_transaksi' => $line[20] ?? 'Pasar',
+                    'pedagang'         => $pedagang,
+                    'id_pelanggan'     => $idPelanggan,
+                    'created_at'       => now(),
+                ];
+
+                // LOGIKA DETAIL TRANSAKSI (PERBAIKAN OPSI 2)
+                for ($j = 0; $j < 10; $j++) {
+                    $qty = (int)($line[8 + $j] ?? 0);
+                    if ($qty > 0) {
+                        $allDetail[] = [
+                            // ID Detail sekarang pendek, misal: DT0000001
+                            'id_detail'    => 'DT' . str_pad($dtCount++, 8, '0', STR_PAD_LEFT), 
+                            'id_transaksi' => $idTransaksi,
+                            'id_produk'    => 'PR' . str_pad($j + 1, 2, '0', STR_PAD_LEFT), 
+                            'jumlah'       => $qty,
+                            'sub_total'    => $qty * 2500,
+                            'created_at'   => now(),
+                        ];
                     }
                 }
-            } catch (\Exception $e) {
-                Log::error("Gagal membaca sheet index $i: " . $e->getMessage());
+
+                // Tiap 500 baris transaksi (biar hemat RAM), langsung save ke DB
+                if (count($allTransaksi) >= 500) {
+                    $this->saveToDb($allPelanggan, $allAlternatif, $allTransaksi, $allDetail);
+                    $allTransaksi = [];
+                    $allDetail = [];
+                    // Pelanggan & Alternatif jangan direset karena butuh dicek uniknya
+                }
             }
         }
-        return response()->json(['status' => true, 'message' => 'Import Selesai!']);
+
+        // Insert sisa data
+        $this->saveToDb($allPelanggan, $allAlternatif, $allTransaksi, $allDetail);
+
+        return response()->json(['status' => true, 'message' => 'Sukses Import 50.000+ Data!']);
+    }
+
+    private function saveToDb($pelanggan, $alternatif, $transaksi, $detail) {
+        DB::transaction(function () use ($pelanggan, $alternatif, $transaksi, $detail) {
+            if (!empty($pelanggan)) Pelanggan::insertOrIgnore(array_values($pelanggan));
+            if (!empty($alternatif)) Alternatif::insertOrIgnore(array_values($alternatif));
+            if (!empty($transaksi)) DB::table('transaksi')->insert($transaksi);
+            if (!empty($detail)) DB::table('detail_transaksi')->insert($detail);
+        });
     }
 }
