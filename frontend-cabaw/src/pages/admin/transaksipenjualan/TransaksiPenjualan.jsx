@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { FiSearch, FiFilter } from "react-icons/fi";
 
 import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
-import TampilanElemen from "../dashboard/TampilanElemen";
 
 import tambahIcon from "../../../assets/tambah.svg";
 import lihatIcon from "../../../assets/lihat.svg";
@@ -16,6 +16,7 @@ const TransaksiPenjualan = () => {
   const [dataTransaksi, setDataTransaksi] = useState([]);
   const [tahunTerpilih, setTahunTerpilih] = useState("2021");
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchTransaksi = async (tahun) => {
     setLoading(true);
@@ -32,6 +33,20 @@ const TransaksiPenjualan = () => {
   useEffect(() => {
     fetchTransaksi(tahunTerpilih);
   }, [tahunTerpilih]);
+
+  const formatTanggal = () => {
+    return new Intl.DateTimeFormat("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date());
+  };
+
+  const dataFiltered = dataTransaksi.filter((item) => {
+    const nama = item.pelanggan?.nama_pelanggan?.toLowerCase() || "";
+    return nama.includes(searchTerm.toLowerCase());
+  });
 
   const handleHapus = async (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
@@ -51,9 +66,30 @@ const TransaksiPenjualan = () => {
 
       <div className="flex-1 ml-[280px] pt-[80px]">
         <NavbarAdmin />
-        <div className="px-0 pt-4"><TampilanElemen /></div>
+        
+        <div className="flex items-center justify-start px-8 py-4 bg-white gap-6 mt-4">
+          <div className="flex items-center gap-4 text-slate-500 font-medium">
+            <span className="text-base whitespace-nowrap">{formatTanggal()}</span>
+            <div className="h-4 w-[1px] bg-gray-300"></div>
+          </div>
 
-        <div className="flex items-center justify-between px-8 mt-6">
+          <button className="p-2 rounded-full border border-gray-200 text-slate-600 hover:bg-gray-50 transition shadow-sm flex-shrink-0">
+            <FiFilter size={16} />
+          </button>
+
+          <div className="relative group">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1E3A5F] transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari nama pelanggan..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-6 py-2 w-64 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/10 focus:border-[#1E3A5F] transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-8 mt-2">
           <div className="flex gap-2">
             {["2021", "2022", "2023", "2024", "2025"].map((y) => (
               <button
@@ -72,9 +108,10 @@ const TransaksiPenjualan = () => {
           </button>
         </div>
 
-        <div className="px-8 mt-6">
+        <div className="px-8 mt-6 pb-10">
           <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
+            {/* table-auto memastikan tabel melebar mengikuti container utamanya */}
+            <table className="w-full table-auto text-sm">
               <thead className="bg-[#F1F5F9] text-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-left">No</th>
@@ -93,16 +130,13 @@ const TransaksiPenjualan = () => {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="11" className="px-4 py-10 text-center italic">Memuat data...</td></tr>
-                ) : dataTransaksi.length > 0 ? (
-                  dataTransaksi.map((item, i) => {
+                ) : dataFiltered.length > 0 ? (
+                  dataFiltered.map((item, i) => {
                     const details = item.detail_transaksi || [];
-
-                    // Gabungkan semua nama produk menjadi satu teks dipisahkan koma
                     const namaKrupuk = details.length > 0 
                       ? details.map(d => d.produk?.nama_produk).filter(Boolean).join(", ")
                       : "-";
 
-                    // Ambil satu harga saja karena semua produk harganya sama (Rp 2.500)
                     const hargaSatuPcs = details.length > 0 && details[0].produk?.harga
                       ? `Rp ${parseInt(details[0].produk.harga).toLocaleString("id-ID")}`
                       : "Rp 0";
@@ -114,27 +148,19 @@ const TransaksiPenjualan = () => {
                       <tr key={item.id_transaksi} className="border-t border-[#E5E5EA] hover:bg-slate-50 transition">
                         <td className="px-4 py-3">{i + 1}</td>
                         <td className="px-4 py-3 font-medium text-slate-800">{item.pelanggan?.nama_pelanggan || "-"}</td>
-                        <td className="px-4 py-3">{item.pelanggan?.jenis_kelamin || "-"}</td>
-                        <td className="px-4 py-3">{tanggalFormatted}</td>
-                        
+                        <td className="px-4 py-3 whitespace-nowrap">{item.pelanggan?.jenis_kelamin || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{tanggalFormatted}</td>
+                        {/* Menghapus max-width agar kolom menyesuaikan secara otomatis */}
                         <td className="px-4 py-3 font-medium text-blue-900">
                           {namaKrupuk}
                         </td>
-                        
-                        {/* Menampilkan hanya satu harga saja */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {hargaSatuPcs}
-                        </td>
-                        
+                        <td className="px-4 py-3 whitespace-nowrap">{hargaSatuPcs}</td>
                         <td className="px-4 py-3 text-center">{item.total_pembelian || 0}</td>
-                        
-                        <td className="px-4 py-3 font-semibold text-[#1E3A5F]">
+                        <td className="px-4 py-3 font-semibold text-[#1E3A5F] whitespace-nowrap">
                           Rp {parseFloat(item.total_harga).toLocaleString("id-ID")}
                         </td>
-                        
                         <td className="px-4 py-3">{item.tempat_transaksi || "-"}</td>
                         <td className="px-4 py-3">{item.pedagang || "-"}</td>
-                        
                         <td className="px-4 py-3">
                           <div className="flex justify-center gap-2">
                             <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200" />
@@ -146,7 +172,11 @@ const TransaksiPenjualan = () => {
                     );
                   })
                 ) : (
-                  <tr><td colSpan="11" className="px-4 py-10 text-center text-red-500 italic">Tidak ada data di tahun {tahunTerpilih}.</td></tr>
+                  <tr>
+                    <td colSpan="11" className="px-4 py-10 text-center text-red-500 italic">
+                      {searchTerm ? `Nama "${searchTerm}" tidak ditemukan.` : `Tidak ada data di tahun ${tahunTerpilih}.`}
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
