@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // Tambahkan useState & useEffect
+import React, { useState, useEffect } from "react";
 import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 import TampilanElemen from "../dashboard/TampilanElemen";
@@ -13,7 +13,7 @@ const Perhitungan = () => {
   const fetchData = async (tahun) => {
     setLoading(true);
     try {
-      // Ganti URL ini sesuai dengan route API di Laravel Anda
+      // Pastikan URL ini sesuai dengan route di api.php Laravel kamu
       const response = await fetch(`http://127.0.0.1:8000/api/proses-perhitungan?tahun=${tahun}`);
       const result = await response.json();
       setDataHitung(result);
@@ -51,7 +51,7 @@ const Perhitungan = () => {
             {["2021", "2022", "2023", "2024", "2025"].map((y, i) => (
               <button
                 key={i}
-                onClick={() => setTahunTerpilih(y)} // Update tahun saat diklik
+                onClick={() => setTahunTerpilih(y)}
                 className={`px-5 py-2 rounded-full border text-sm transition-all ${
                   y === tahunTerpilih
                     ? "bg-[#1E3A5F] text-white"
@@ -66,7 +66,9 @@ const Perhitungan = () => {
 
         <div className="px-8 pb-10">
           {loading ? (
-            <div className="mt-10 text-center text-slate-500">Menghitung Data Fuzzy TOPSIS Tahun {tahunTerpilih}...</div>
+            <div className="mt-10 text-center text-slate-500">
+              Menghitung Data Fuzzy TOPSIS Tahun {tahunTerpilih}...
+            </div>
           ) : dataHitung ? (
             <div className="bg-white rounded-xl p-6 shadow-sm space-y-8">
               <h1 className="text-xl font-semibold text-slate-800">
@@ -77,13 +79,13 @@ const Perhitungan = () => {
               <TableWrapper>
                 <Table
                   headers={["Alternatif / Kriteria", "C1", "C2", "C3", "C4"]}
-                  rows={dataHitung.matriks_fuzzy.map((item) => [
+                  rows={dataHitung?.matriks_fuzzy?.map((item) => [
                     item.nama,
                     item.c1,
                     item.c2,
                     item.c3,
                     item.c4,
-                  ])}
+                  ]) || []}
                 />
               </TableWrapper>
 
@@ -91,13 +93,13 @@ const Perhitungan = () => {
               <TableWrapper>
                 <Table
                   headers={["Xij", "C1", "C2", "C3", "C4"]}
-                  rows={dataHitung.matriks_r.map((item) => [
+                  rows={dataHitung?.matriks_r?.map((item) => [
                     item.nama,
                     item.c1,
                     item.c2,
                     item.c3,
                     item.c4,
-                  ])}
+                  ]) || []}
                 />
               </TableWrapper>
 
@@ -105,13 +107,14 @@ const Perhitungan = () => {
               <TableWrapper>
                 <Table
                   headers={["rij", "C1", "C2", "C3", "C4"]}
-                  rows={dataHitung.matriks_v.map((item) => [
+                  rows={dataHitung?.matriks_v?.map((item) => [
                     item.nama,
-                    item.c1,
-                    item.c2,
-                    item.c3,
-                    item.c4,
-                  ])}
+                    // Menggunakan Optional Chaining agar tidak blank jika v_data belum ada
+                    item.v_data?.c1 ? `(${item.v_data.c1.join(", ")})` : "-",
+                    item.v_data?.c2 ? `(${item.v_data.c2.join(", ")})` : "-",
+                    item.v_data?.c3 ? `(${item.v_data.c3.join(", ")})` : "-",
+                    item.v_data?.c4 ? `(${item.v_data.c4.join(", ")})` : "-",
+                  ]) || []}
                 />
               </TableWrapper>
 
@@ -130,17 +133,19 @@ const Perhitungan = () => {
               <TableWrapper>
                 <Table
                   headers={["Alternatif", "D+", "D-", "Nilai V (Preferensi)"]}
-                  rows={dataHitung.hasil_akhir.map((item) => [
+                  rows={dataHitung?.hasil_akhir?.map((item) => [
                     item.nama,
                     item.d_plus,
                     item.d_min,
                     item.nilai_v,
-                  ])}
+                  ]) || []}
                 />
               </TableWrapper>
             </div>
           ) : (
-            <div className="mt-10 text-center text-red-500">Gagal memuat data.</div>
+            <div className="mt-10 text-center text-red-500">
+              Gagal memuat data. Periksa koneksi ke Backend Laravel.
+            </div>
           )}
         </div>
       </div>
@@ -148,7 +153,7 @@ const Perhitungan = () => {
   );
 };
 
-/* ================= REUSABLE (Tetap sama sesuai permintaan Anda) ================= */
+/* ================= REUSABLE COMPONENTS (Sesuai UI Kamu) ================= */
 const Section = ({ title }) => (
   <h2 className="text-lg font-semibold text-slate-700 mt-4">{title}</h2>
 );
@@ -171,15 +176,23 @@ const Table = ({ headers, rows }) => (
       </tr>
     </thead>
     <tbody>
-      {rows.map((row, i) => (
-        <tr key={i} className="hover:bg-slate-50">
-          {row.map((cell, j) => (
-            <td key={j} className="px-4 py-3 border border-[#E5E5EA] text-center">
-              {cell}
-            </td>
-          ))}
+      {rows.length > 0 ? (
+        rows.map((row, i) => (
+          <tr key={i} className="hover:bg-slate-50">
+            {row.map((cell, j) => (
+              <td key={j} className="px-4 py-3 border border-[#E5E5EA] text-center">
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan={headers.length} className="px-4 py-10 text-center text-slate-400 italic">
+            Data tidak ditemukan
+          </td>
         </tr>
-      ))}
+      )}
     </tbody>
   </table>
 );

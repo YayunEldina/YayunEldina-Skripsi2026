@@ -1,4 +1,6 @@
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
@@ -9,68 +11,69 @@ import lihatIcon from "../../../assets/lihat.svg";
 import editIcon from "../../../assets/edit.svg";
 import hapusIcon from "../../../assets/hapus.svg";
 
-const dataDummy = Array.from({ length: 10 }, (_, i) => ({
-  no: i + 1,
-  nama: "Murti",
-  jk: "Perempuan",
-  tanggal: 1,
-  bulan: 1,
-  tahun: 2021,
-  jenis: "Uyel Putih",
-  hargaPcs: "Rp 2.500",
-  total: 20,
-  harga: "Rp 50.000",
-  tempat: "Pasar",
-}));
-
 const TransaksiPenjualan = () => {
-  const navigate = useNavigate(); // ✅ INIT NAVIGATE
+  const navigate = useNavigate();
+  const [dataTransaksi, setDataTransaksi] = useState([]);
+  const [tahunTerpilih, setTahunTerpilih] = useState("2021");
+  const [loading, setLoading] = useState(true);
+
+  const fetchTransaksi = async (tahun) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`http://127.0.0.1:8000/api/transaksi?tahun=${tahun}`);
+      setDataTransaksi(response.data);
+    } catch (error) {
+      console.error("Gagal mengambil data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransaksi(tahunTerpilih);
+  }, [tahunTerpilih]);
+
+  const handleHapus = async (id) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+      try {
+        await axios.delete(`http://127.0.0.1:8000/api/transaksi/${id}`);
+        alert("Data berhasil dihapus");
+        fetchTransaksi(tahunTerpilih);
+      } catch (error) {
+        alert("Gagal menghapus data");
+      }
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* SIDEBAR */}
       <SidebarNavigationSection />
 
-      {/* CONTENT */}
       <div className="flex-1 ml-[280px] pt-[80px]">
-        {/* NAVBAR */}
         <NavbarAdmin />
+        <div className="px-0 pt-4"><TampilanElemen /></div>
 
-        {/* TANGGAL + SEARCH */}
-        <div className="px-0 pt-4">
-          <TampilanElemen />
-        </div>
-
-        {/* FILTER + BUTTON */}
         <div className="flex items-center justify-between px-8 mt-6">
           <div className="flex gap-2">
-            {["2021", "2022", "2023", "2024", "2025"].map((y, i) => (
+            {["2021", "2022", "2023", "2024", "2025"].map((y) => (
               <button
-                key={i}
-                className={`px-5 py-2 rounded-full border text-sm ${
-                  y === "2021"
-                    ? "bg-[#1E3A5F] text-white"
-                    : "bg-white text-slate-600"
+                key={y}
+                onClick={() => setTahunTerpilih(y)}
+                className={`px-5 py-2 rounded-full border text-sm transition-all ${
+                  y === tahunTerpilih ? "bg-[#1E3A5F] text-white" : "bg-white text-slate-600"
                 }`}
               >
                 {y}
               </button>
             ))}
           </div>
-
-          {/* ✅ TOMBOL TAMBAH */}
-          <button
-            onClick={() => navigate("/admin/tambah/transaksi")}
-            className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90"
-          >
-            <img src={tambahIcon} alt="tambah" className="w-4 h-4" />
-            Tambah transaksi
+          <button onClick={() => navigate("/admin/tambah/transaksi")} className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90">
+            <img src={tambahIcon} alt="tambah" className="w-4 h-4" /> Tambah transaksi
           </button>
         </div>
 
-        {/* TABLE */}
         <div className="px-8 mt-6">
-          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden">
+          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead className="bg-[#F1F5F9] text-slate-700">
                 <tr>
@@ -78,79 +81,69 @@ const TransaksiPenjualan = () => {
                   <th className="px-4 py-3 text-left">Nama Pelanggan</th>
                   <th className="px-4 py-3 text-left">Jenis Kelamin</th>
                   <th className="px-4 py-3 text-left">Tanggal</th>
-                  <th className="px-4 py-3 text-left">Bulan</th>
-                  <th className="px-4 py-3 text-left">Tahun</th>
                   <th className="px-4 py-3 text-left">Jenis Krupuk</th>
                   <th className="px-4 py-3 text-left">Harga / Pcs</th>
                   <th className="px-4 py-3 text-left">Total Pembelian</th>
                   <th className="px-4 py-3 text-left">Total Harga</th>
                   <th className="px-4 py-3 text-left">Tempat Transaksi</th>
+                  <th className="px-4 py-3 text-left">Pedagang</th>
                   <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
-
               <tbody>
-                {dataDummy.map((item, i) => (
-                  <tr
-                    key={i}
-                    className="border-t border-[#E5E5EA] hover:bg-slate-50 transition"
-                  >
-                    <td className="px-4 py-3">{item.no}</td>
-                    <td className="px-4 py-3">{item.nama}</td>
-                    <td className="px-4 py-3">{item.jk}</td>
-                    <td className="px-4 py-3">{item.tanggal}</td>
-                    <td className="px-4 py-3">{item.bulan}</td>
-                    <td className="px-4 py-3">{item.tahun}</td>
-                    <td className="px-4 py-3">{item.jenis}</td>
-                    <td className="px-4 py-3">{item.hargaPcs}</td>
-                    <td className="px-4 py-3">{item.total}</td>
-                    <td className="px-4 py-3">{item.harga}</td>
-                    <td className="px-4 py-3">{item.tempat}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-2">
+                {loading ? (
+                  <tr><td colSpan="11" className="px-4 py-10 text-center italic">Memuat data...</td></tr>
+                ) : dataTransaksi.length > 0 ? (
+                  dataTransaksi.map((item, i) => {
+                    // Akses relasi detail_transaksi (snake_case)
+                    const detail = item.detail_transaksi && item.detail_transaksi.length > 0 
+                                   ? item.detail_transaksi[0] 
+                                   : null;
 
-                        {/* ✅ LIHAT */}
-                        <img
-                          src={lihatIcon}
-                          alt="lihat"
-                          onClick={() =>
-                            navigate("/admin/lihat/transaksi")
-                          }
-                          className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer"
-                        />
+                    const tglObj = new Date(item.tanggal);
+                    const tanggalFormatted = `${tglObj.getDate()}/${tglObj.getMonth() + 1}/${tglObj.getFullYear()}`;
 
-                        {/* ✅ EDIT */}
-                        <img
-                          src={editIcon}
-                          alt="edit"
-                          onClick={() =>
-                            navigate("/admin/edit/transaksi")
-                          }
-                          className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer"
-                        />
-
-                        {/* HAPUS (belum diubah) */}
-                        <img
-                          src={hapusIcon}
-                          alt="hapus"
-                          className="w-8 h-8 p-1.5 rounded-md bg-red-100 cursor-pointer"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                    return (
+                      <tr key={item.id_transaksi} className="border-t border-[#E5E5EA] hover:bg-slate-50 transition">
+                        <td className="px-4 py-3">{i + 1}</td>
+                        <td className="px-4 py-3 font-medium text-slate-800">{item.pelanggan?.nama_pelanggan || "-"}</td>
+                        <td className="px-4 py-3">{item.pelanggan?.jenis_kelamin || "-"}</td>
+                        <td className="px-4 py-3">{tanggalFormatted}</td>
+                        
+                        {/* Jenis Krupuk - Diambil dari item -> detail_transaksi -> produk -> nama_produk */}
+                        <td className="px-4 py-3 font-medium text-blue-900">
+                          {detail?.produk?.nama_produk || "-"}
+                        </td>
+                        
+                        {/* Harga / Pcs - Diambil dari item -> detail_transaksi -> produk -> harga */}
+                        <td className="px-4 py-3">
+                          Rp {detail?.produk?.harga ? parseInt(detail.produk.harga).toLocaleString("id-ID") : "0"}
+                        </td>
+                        
+                        <td className="px-4 py-3 text-center">{item.total_pembelian || 0}</td>
+                        
+                        <td className="px-4 py-3 font-semibold text-[#1E3A5F]">
+                          Rp {parseFloat(item.total_harga).toLocaleString("id-ID")}
+                        </td>
+                        
+                        <td className="px-4 py-3">{item.tempat_transaksi || "-"}</td>
+                        <td className="px-4 py-3">{item.pedagang || "-"}</td>
+                        
+                        <td className="px-4 py-3">
+                          <div className="flex justify-center gap-2">
+                            <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200" />
+                            <img src={editIcon} alt="edit" onClick={() => navigate(`/admin/edit/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer hover:bg-yellow-200" />
+                            <img src={hapusIcon} alt="hapus" onClick={() => handleHapus(item.id_transaksi)} className="w-8 h-8 p-1.5 rounded-md bg-red-100 cursor-pointer hover:bg-red-200" />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr><td colSpan="11" className="px-4 py-10 text-center text-red-500 italic">Tidak ada data di tahun {tahunTerpilih}.</td></tr>
+                )}
               </tbody>
             </table>
-          </div>
-
-          {/* PAGINATION */}
-          <div className="flex justify-end items-center gap-2 mt-6 text-sm">
-            <button className="px-3 py-1">{"<"} Previous</button>
-            <button className="px-3 py-1">1</button>
-            <button className="px-3 py-1 border rounded-md">2</button>
-            <button className="px-3 py-1">3</button>
-            <button className="px-3 py-1">...</button>
-            <button className="px-3 py-1">Next {">"}</button>
           </div>
         </div>
       </div>
