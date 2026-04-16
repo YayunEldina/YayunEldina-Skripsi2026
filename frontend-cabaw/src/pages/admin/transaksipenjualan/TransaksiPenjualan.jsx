@@ -95,10 +95,17 @@ const TransaksiPenjualan = () => {
                   <tr><td colSpan="11" className="px-4 py-10 text-center italic">Memuat data...</td></tr>
                 ) : dataTransaksi.length > 0 ? (
                   dataTransaksi.map((item, i) => {
-                    // Akses relasi detail_transaksi (snake_case)
-                    const detail = item.detail_transaksi && item.detail_transaksi.length > 0 
-                                   ? item.detail_transaksi[0] 
-                                   : null;
+                    const details = item.detail_transaksi || [];
+
+                    // Gabungkan semua nama produk menjadi satu teks dipisahkan koma
+                    const namaKrupuk = details.length > 0 
+                      ? details.map(d => d.produk?.nama_produk).filter(Boolean).join(", ")
+                      : "-";
+
+                    // Ambil satu harga saja karena semua produk harganya sama (Rp 2.500)
+                    const hargaSatuPcs = details.length > 0 && details[0].produk?.harga
+                      ? `Rp ${parseInt(details[0].produk.harga).toLocaleString("id-ID")}`
+                      : "Rp 0";
 
                     const tglObj = new Date(item.tanggal);
                     const tanggalFormatted = `${tglObj.getDate()}/${tglObj.getMonth() + 1}/${tglObj.getFullYear()}`;
@@ -110,14 +117,13 @@ const TransaksiPenjualan = () => {
                         <td className="px-4 py-3">{item.pelanggan?.jenis_kelamin || "-"}</td>
                         <td className="px-4 py-3">{tanggalFormatted}</td>
                         
-                        {/* Jenis Krupuk - Diambil dari item -> detail_transaksi -> produk -> nama_produk */}
                         <td className="px-4 py-3 font-medium text-blue-900">
-                          {detail?.produk?.nama_produk || "-"}
+                          {namaKrupuk}
                         </td>
                         
-                        {/* Harga / Pcs - Diambil dari item -> detail_transaksi -> produk -> harga */}
-                        <td className="px-4 py-3">
-                          Rp {detail?.produk?.harga ? parseInt(detail.produk.harga).toLocaleString("id-ID") : "0"}
+                        {/* Menampilkan hanya satu harga saja */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {hargaSatuPcs}
                         </td>
                         
                         <td className="px-4 py-3 text-center">{item.total_pembelian || 0}</td>
