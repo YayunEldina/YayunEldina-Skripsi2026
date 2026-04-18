@@ -8,9 +8,7 @@ class DetailTransaksi extends Model
 {
     protected $table = 'detail_transaksi';
     protected $primaryKey = 'id_detail';
-    protected $keyType = 'string'; 
-    public $incrementing = false;
-    public $timestamps = true;
+    // HAPUS incrementing false dan keyType string
 
     protected $fillable = [
         'jumlah',
@@ -24,7 +22,6 @@ class DetailTransaksi extends Model
         return $this->belongsTo(Transaksi::class, 'id_transaksi', 'id_transaksi');
     }
 
-    // PENTING: Relasi untuk mengambil nama_produk dan harga
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'id_produk', 'id_produk');

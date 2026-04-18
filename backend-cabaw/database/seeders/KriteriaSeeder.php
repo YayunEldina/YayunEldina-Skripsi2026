@@ -5,17 +5,14 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class KriteriaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
     public function run()
     {
-        // Pastikan tabel kosong sebelum diisi agar tidak duplikat saat dijalankan berkali-kali
+        // Nonaktifkan constraint foreign key agar truncate lancar
+        Schema::disableForeignKeyConstraints();
         DB::table('kriterias')->truncate();
 
         DB::table('kriterias')->insert([
@@ -56,5 +53,7 @@ class KriteriaSeeder extends Seeder
                 'updated_at' => Carbon::now()
             ],
         ]);
+
+        Schema::enableForeignKeyConstraints();
     }
 }

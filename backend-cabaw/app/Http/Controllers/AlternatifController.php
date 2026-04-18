@@ -12,34 +12,45 @@ class AlternatifController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Ambil query pencarian jika ada
+        // 1. Ambil query pencarian
         $search = $request->query('search');
 
+        // Gunakan with('pelanggan') jika di model Alternatif sudah ada relasi
+        // Ini membantu jika kamu ingin menampilkan Nama Pelanggan asli di UI
         $query = Alternatif::query();
 
-        // 2. Logika Pencarian (Search by Nama atau Kode)
+        // 2. Logika Pencarian
         if ($search) {
-            $query->where('nama_alternatif', 'LIKE', "%{$search}%")
-                  ->orWhere('kode_alternatif', 'LIKE', "%{$search}%");
+            $query->where(function($q) use ($search) {
+                $q->where('nama_alternatif', 'LIKE', "%{$search}%")
+                  ->orWhere('kode_alternatif', 'LIKE', "%{$search}%")
+                  ->orWhere('pedagang', 'LIKE', "%{$search}%");
+            });
         }
 
-        // 3. Urutan Alami (A1, A2, A10...)
-        // Kita urutkan berdasarkan panjang karakter dulu, baru abjadnya
+        // 3. Pengurutan
+        // Karena id_alternatif sekarang angka, kita bisa urutkan berdasarkan ID
+        // atau tetap menggunakan logika panjang karakter untuk Kode (A1, A2, dst)
         $alternatif = $query->orderByRaw('LENGTH(kode_alternatif) ASC')
                             ->orderBy('kode_alternatif', 'ASC')
-                            ->paginate(10); // Menampilkan 10 data per halaman
+                            ->paginate(15); // Ubah ke 15 agar lebih enak dilihat
 
         return response()->json($alternatif, 200);
     }
 
     /**
-     * Optional: Jika kamu butuh data tanpa pagination untuk perhitungan (tapi hati-hati RAM)
+     * Menampilkan data tanpa pagination (khusus untuk dropdown atau script kecil)
+     * Untuk perhitungan SPK, disarankan ambil langsung di PerhitunganController 
+     * seperti yang kita buat tadi agar lebih efisien memori.
      */
     public function getAllForCalculation()
     {
-        $alternatif = Alternatif::orderByRaw('LENGTH(kode_alternatif) ASC')
+        // Membatasi kolom yang diambil agar hemat RAM
+        $alternatif = Alternatif::select('id_alternatif', 'kode_alternatif', 'nama_alternatif', 'id_pelanggan')
+                                ->orderByRaw('LENGTH(kode_alternatif) ASC')
                                 ->orderBy('kode_alternatif', 'ASC')
                                 ->get();
+
         return response()->json($alternatif, 200);
     }
 }

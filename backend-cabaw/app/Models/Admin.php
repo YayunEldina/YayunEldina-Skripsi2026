@@ -3,16 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Admin extends Model
+class Admin extends Authenticatable // Gunakan Authenticatable agar bisa login
 {
     protected $table = 'admin';
     protected $primaryKey = 'id_admin';
-    public $incrementing = false; // Karena id_admin bukan auto-increment
-    protected $keyType = 'string';
-
+    // HAPUS incrementing false dan keyType string
+    
     protected $fillable = [
-        'id_admin',
         'nama_admin',
         'username',
         'password'

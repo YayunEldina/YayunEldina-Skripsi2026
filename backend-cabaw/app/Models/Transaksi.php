@@ -8,9 +8,7 @@ class Transaksi extends Model
 {
     protected $table = 'transaksi';
     protected $primaryKey = 'id_transaksi';
-    protected $keyType = 'string'; 
-    public $incrementing = false;  
-    public $timestamps = true;
+    // HAPUS incrementing false dan keyType string
 
     protected $fillable = [
         'tanggal',
@@ -28,7 +26,6 @@ class Transaksi extends Model
 
     public function detailTransaksi()
     {
-        // Menghubungkan ke tabel detail_transaksi
         return $this->hasMany(DetailTransaksi::class, 'id_transaksi', 'id_transaksi');
     }
 }

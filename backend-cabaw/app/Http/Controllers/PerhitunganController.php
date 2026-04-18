@@ -11,41 +11,56 @@ class PerhitunganController extends Controller
 {
     public function hitungFuzzyTopsis(Request $request)
     {
+        // Meningkatkan limit memori dan waktu eksekusi untuk menangani ratusan ribu data
+        ini_set('max_execution_time', 600); // 10 Menit
+        ini_set('memory_limit', '1G');
+
         $tahun = $request->query('tahun', '2021');
 
-        // 1. Ambil kriteria
+        // 1. Ambil data kriteria dan simpan dalam array berdasarkan kode
         $kriterias = Kriteria::all()->keyBy('kode_kriteria'); 
         
         if (!isset($kriterias['C1'], $kriterias['C2'], $kriterias['C3'], $kriterias['C4'])) {
-            return response()->json(['message' => 'Data Kriteria C1-C4 tidak lengkap'], 500);
+            return response()->json(['message' => 'Data Kriteria C1-C4 tidak lengkap di database'], 500);
         }
 
-        // 2. Ambil Alternatif
+        // 2. OPTIMASI: Hitung statistik semua pelanggan sekaligus dalam satu query (Bukan di dalam loop)
+        $allStats = DB::table('transaksi')
+            ->whereYear('tanggal', $tahun)
+            ->select(
+                'id_pelanggan',
+                DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'), // Total Barang
+                DB::raw('COALESCE(SUM(total_harga), 0) as c2'),     // Total Uang
+                DB::raw('COUNT(id_transaksi) as c3'),             // Frekuensi Belanja
+                DB::raw('COALESCE(AVG(total_pembelian), 0) as c4') // Rata-rata Pembelian
+            )
+            ->groupBy('id_pelanggan')
+            ->get()
+            ->keyBy('id_pelanggan');
+
+        // 3. Ambil data Alternatif (Pelanggan yang masuk penilaian)
         $alternatifs = Alternatif::all();
 
         $matriksFuzzy = [];
         $matriksR = [];
-        $matriksV = [];
         $hasilAkhir = [];
 
         foreach ($alternatifs as $alt) {
-            // Query mendapatkan data riil dari tabel transaksi
-            $stats = DB::table('transaksi')
-                ->where('id_pelanggan', $alt->id_pelanggan)
-                ->whereYear('tanggal', $tahun)
-                ->select(
-                    DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'), // Total Barang
-                    DB::raw('COALESCE(SUM(total_harga), 0) as c2'),     // Total Uang
-                    DB::raw('COUNT(id_transaksi) as c3'),             // Frekuensi Belanja
-                    DB::raw('COALESCE(AVG(total_pembelian), 0) as c4') // Rata-rata Pembelian
-                )->first();
+            // Ambil statistik dari hasil query kolektif
+            $stats = $allStats->get($alt->id_pelanggan);
 
-            // Tahap 1: Fuzzifikasi (Menggunakan Skala Baru yang lebih luas)
+            // Jika pelanggan tidak punya transaksi di tahun terpilih, beri nilai 0
+            $valC1 = $stats ? $stats->c1 : 0;
+            $valC2 = $stats ? $stats->c2 : 0;
+            $valC3 = $stats ? $stats->c3 : 0;
+            $valC4 = $stats ? $stats->c4 : 0;
+
+            // TAHAP 1: Fuzzifikasi (Konversi nilai riil ke Triangular Fuzzy Number)
             $f = [
-                'c1' => $this->konversiFuzzyC1($stats->c1),
-                'c2' => $this->konversiFuzzyC2($stats->c2),
-                'c3' => $this->konversiFuzzyC3($stats->c3),
-                'c4' => $this->konversiFuzzyC4($stats->c4),
+                'c1' => $this->konversiFuzzyC1($valC1),
+                'c2' => $this->konversiFuzzyC2($valC2),
+                'c3' => $this->konversiFuzzyC3($valC3),
+                'c4' => $this->konversiFuzzyC4($valC4),
             ];
             
             $matriksFuzzy[] = [
@@ -56,18 +71,17 @@ class PerhitunganController extends Controller
                 'c4' => "({$f['c4'][0]}, {$f['c4'][1]}, {$f['c4'][2]})",
             ];
 
-            // Tahap 2: Normalisasi R (Benefit & Cost)
-            $r = [];
-            // Benefit: C1, C2, C3
-            foreach(['c1', 'c2', 'c3'] as $k) {
-                $r[$k] = [$f[$k][0], $f[$k][1], $f[$k][2]]; // Normalisasi terhadap nilai max 1
-            }
-            // Cost: C4 (Rumus: l_min / u, l_min / m, l_min / l)
+            // TAHAP 2: Normalisasi Matriks R (Benefit & Cost)
             $l_min = 0.25; 
-            $r['c4'] = [
-                $f['c4'][2] > 0 ? round($l_min / $f['c4'][2], 2) : 0, 
-                $f['c4'][1] > 0 ? round($l_min / $f['c4'][1], 2) : 0, 
-                $f['c4'][0] > 0 ? round($l_min / $f['c4'][0], 2) : 0
+            $r = [
+                'c1' => [$f['c1'][0], $f['c1'][1], $f['c1'][2]], // Benefit
+                'c2' => [$f['c2'][0], $f['c2'][1], $f['c2'][2]], // Benefit
+                'c3' => [$f['c3'][0], $f['c3'][1], $f['c3'][2]], // Benefit
+                'c4' => [ // Cost: (l_min/u, l_min/m, l_min/l)
+                    $f['c4'][2] > 0 ? round($l_min / $f['c4'][2], 2) : 0, 
+                    $f['c4'][1] > 0 ? round($l_min / $f['c4'][1], 2) : 0, 
+                    $f['c4'][0] > 0 ? round($l_min / $f['c4'][0], 2) : 0
+                ]
             ];
 
             $matriksR[] = [
@@ -78,29 +92,21 @@ class PerhitunganController extends Controller
                 'c4' => "({$r['c4'][0]}, {$r['c4'][1]}, {$r['c4'][2]})",
             ];
 
-            // Tahap 3: Pembobotan V
-            $v = [];
+            // TAHAP 3, 4, 5: Pembobotan V, Jarak D+ D-, dan Kedekatan Kedekatan Relatif
+            $dPlus = 0; $dMin = 0;
             foreach (['c1', 'c2', 'c3', 'c4'] as $key) {
                 $kodeK = strtoupper($key);
                 $bobotArr = $this->parseFuzzy($kriterias[$kodeK]->bobot_fuzzy);
-                $v[$key] = [
-                    round($r[$key][0] * $bobotArr[0], 2),
-                    round($r[$key][1] * $bobotArr[1], 2),
-                    round($r[$key][2] * $bobotArr[2], 2)
-                ];
-            }
+                
+                // Matriks Terbobot V = R * W
+                $v0 = $r[$key][0] * $bobotArr[0];
+                $v1 = $r[$key][1] * $bobotArr[1];
+                $v2 = $r[$key][2] * $bobotArr[2];
 
-            $matriksV[] = [
-                'nama' => $alt->nama_alternatif,
-                'v_data' => $v
-            ];
-
-            // Tahap 4 & 5: Jarak D+, D- dan Preferensi V
-            // FPIS (A+) = [1,1,1], FNIS (A-) = [0,0,0]
-            $dPlus = 0; $dMin = 0;
-            foreach ($v as $val) {
-                $dPlus += sqrt((1/3) * (pow($val[0]-1, 2) + pow($val[1]-1, 2) + pow($val[2]-1, 2)));
-                $dMin += sqrt((1/3) * (pow($val[0]-0, 2) + pow($val[1]-0, 2) + pow($val[2]-0, 2)));
+                // Hitung Jarak Vertex ke FPIS (Ideal+) dan FNIS (Ideal-)
+                // FPIS = (1,1,1), FNIS = (0,0,0)
+                $dPlus += sqrt((1/3) * (pow($v0 - 1, 2) + pow($v1 - 1, 2) + pow($v2 - 1, 2)));
+                $dMin += sqrt((1/3) * (pow($v0 - 0, 2) + pow($v1 - 0, 2) + pow($v2 - 0, 2)));
             }
 
             $pembagi = $dPlus + $dMin;
@@ -115,46 +121,47 @@ class PerhitunganController extends Controller
             ];
         }
 
-        // --- SORTING BERDASARKAN NILAI V TERBESAR ---
+        // SORTING: Urutkan berdasarkan Nilai V tertinggi
         usort($hasilAkhir, fn($a, $b) => $b['nilai_v'] <=> $a['nilai_v']);
 
-        // Reset index dan tambah variabel rank
-        $hasilAkhir = array_values($hasilAkhir);
-        foreach ($hasilAkhir as $key => $val) {
-            $hasilAkhir[$key]['rank'] = $key + 1;
+        // Tambahkan Ranking
+        foreach ($hasilAkhir as $index => $item) {
+            $hasilAkhir[$index]['rank'] = $index + 1;
         }
 
         return response()->json([
-            'matriks_fuzzy' => $matriksFuzzy,
-            'matriks_r' => $matriksR,
-            'hasil_akhir' => $hasilAkhir
+            'status' => true,
+            'tahun' => $tahun,
+            'matriks_fuzzy' => array_slice($matriksFuzzy, 0, 50), // Batasi 50 untuk preview
+            'matriks_r' => array_slice($matriksR, 0, 50),
+            'hasil_akhir' => $hasilAkhir // Tampilkan semua hasil akhir
         ]);
     }
 
-    // --- FUNGSI KONVERSI DINAMIS SESUAI DATA AGUS (TAHUNAN) ---
+    // --- FUNGSI HELPER KONVERSI FUZZY (Sesuai Skala Penilaian) ---
 
-    private function konversiFuzzyC1($nilai) { // Total Pembelian (Asumsi Agus 24.000+)
+    private function konversiFuzzyC1($nilai) { 
         if ($nilai >= 20000) return [0.75, 1.00, 1.00];
         if ($nilai >= 10000) return [0.50, 0.75, 1.00];
         if ($nilai >= 5000)  return [0.25, 0.50, 0.75];
         return [0.00, 0.25, 0.50];
     }
 
-    private function konversiFuzzyC2($nilai) { // Total Harga (Asumsi Jutaan)
+    private function konversiFuzzyC2($nilai) { 
         if ($nilai >= 50000000) return [0.75, 1.00, 1.00];
         if ($nilai >= 25000000) return [0.50, 0.75, 1.00];
         if ($nilai >= 10000000) return [0.25, 0.50, 0.75];
         return [0.00, 0.25, 0.50];
     }
 
-    private function konversiFuzzyC3($nilai) { // Frekuensi (365 hari/tahun)
+    private function konversiFuzzyC3($nilai) { 
         if ($nilai >= 300) return [0.75, 1.00, 1.00];
         if ($nilai >= 150) return [0.50, 0.75, 1.00];
         if ($nilai >= 50)  return [0.25, 0.50, 0.75];
         return [0.00, 0.25, 0.50];
     }
 
-    private function konversiFuzzyC4($nilai) { // Rata-rata per transaksi
+    private function konversiFuzzyC4($nilai) { 
         if ($nilai >= 70) return [0.75, 1.00, 1.00];
         if ($nilai >= 50) return [0.50, 0.75, 1.00];
         if ($nilai >= 20) return [0.25, 0.50, 0.75];

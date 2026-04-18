@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FiSearch, FiFilter } from "react-icons/fi";
+import { FiSearch, FiFilter, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
@@ -14,15 +14,21 @@ import hapusIcon from "../../../assets/hapus.svg";
 const TransaksiPenjualan = () => {
   const navigate = useNavigate();
   const [dataTransaksi, setDataTransaksi] = useState([]);
+  const [pagination, setPagination] = useState({});
+  const [page, setPage] = useState(1);
   const [tahunTerpilih, setTahunTerpilih] = useState("2021");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchTransaksi = async (tahun) => {
+  const fetchTransaksi = async (tahun, currentPage) => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/transaksi?tahun=${tahun}`);
-      setDataTransaksi(response.data);
+      // Mengambil data dari backend yang sudah dipaginasi
+      const response = await axios.get(`http://127.0.0.1:8000/api/transaksi?tahun=${tahun}&page=${currentPage}`);
+      
+      // Laravel paginate mengembalikan object, data asli ada di property .data
+      setDataTransaksi(response.data.data); 
+      setPagination(response.data);
     } catch (error) {
       console.error("Gagal mengambil data:", error);
     } finally {
@@ -31,10 +37,10 @@ const TransaksiPenjualan = () => {
   };
 
   useEffect(() => {
-    fetchTransaksi(tahunTerpilih);
-  }, [tahunTerpilih]);
+    fetchTransaksi(tahunTerpilih, page);
+  }, [tahunTerpilih, page]);
 
-  const formatTanggal = () => {
+  const formatTanggalHariIni = () => {
     return new Intl.DateTimeFormat("id-ID", {
       weekday: "long",
       day: "numeric",
@@ -43,6 +49,7 @@ const TransaksiPenjualan = () => {
     }).format(new Date());
   };
 
+  // Filter hanya dilakukan pada data yang tampil di halaman saat ini
   const dataFiltered = dataTransaksi.filter((item) => {
     const nama = item.pelanggan?.nama_pelanggan?.toLowerCase() || "";
     return nama.includes(searchTerm.toLowerCase());
@@ -53,7 +60,7 @@ const TransaksiPenjualan = () => {
       try {
         await axios.delete(`http://127.0.0.1:8000/api/transaksi/${id}`);
         alert("Data berhasil dihapus");
-        fetchTransaksi(tahunTerpilih);
+        fetchTransaksi(tahunTerpilih, page);
       } catch (error) {
         alert("Gagal menghapus data");
       }
@@ -67,9 +74,10 @@ const TransaksiPenjualan = () => {
       <div className="flex-1 ml-[280px] pt-[80px]">
         <NavbarAdmin />
         
+        {/* Search & Filter Section */}
         <div className="flex items-center justify-start px-8 py-4 bg-white gap-6 mt-4">
           <div className="flex items-center gap-4 text-slate-500 font-medium">
-            <span className="text-base whitespace-nowrap">{formatTanggal()}</span>
+            <span className="text-base whitespace-nowrap">{formatTanggalHariIni()}</span>
             <div className="h-4 w-[1px] bg-gray-300"></div>
           </div>
 
@@ -89,12 +97,13 @@ const TransaksiPenjualan = () => {
           </div>
         </div>
 
+        {/* Year Filter & Add Button */}
         <div className="flex items-center justify-between px-8 mt-2">
           <div className="flex gap-2">
             {["2021", "2022", "2023", "2024", "2025"].map((y) => (
               <button
                 key={y}
-                onClick={() => setTahunTerpilih(y)}
+                onClick={() => { setTahunTerpilih(y); setPage(1); }}
                 className={`px-5 py-2 rounded-full border text-sm transition-all ${
                   y === tahunTerpilih ? "bg-[#1E3A5F] text-white" : "bg-white text-slate-600"
                 }`}
@@ -103,14 +112,14 @@ const TransaksiPenjualan = () => {
               </button>
             ))}
           </div>
-          <button onClick={() => navigate("/admin/tambah/transaksi")} className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90">
+          <button onClick={() => navigate("/admin/tambah/transaksi")} className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md">
             <img src={tambahIcon} alt="tambah" className="w-4 h-4" /> Tambah transaksi
           </button>
         </div>
 
-        <div className="px-8 mt-6 pb-10">
+        {/* Table Section */}
+        <div className="px-8 mt-6 pb-4">
           <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
-            {/* table-auto memastikan tabel melebar mengikuti container utamanya */}
             <table className="w-full table-auto text-sm">
               <thead className="bg-[#F1F5F9] text-slate-700">
                 <tr>
@@ -129,7 +138,7 @@ const TransaksiPenjualan = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="11" className="px-4 py-10 text-center italic">Memuat data...</td></tr>
+                  <tr><td colSpan="11" className="px-4 py-10 text-center italic">Memuat data dari 380.000+ records...</td></tr>
                 ) : dataFiltered.length > 0 ? (
                   dataFiltered.map((item, i) => {
                     const details = item.detail_transaksi || [];
@@ -146,14 +155,12 @@ const TransaksiPenjualan = () => {
 
                     return (
                       <tr key={item.id_transaksi} className="border-t border-[#E5E5EA] hover:bg-slate-50 transition">
-                        <td className="px-4 py-3">{i + 1}</td>
+                        {/* Penomoran otomatis sesuai halaman */}
+                        <td className="px-4 py-3">{(pagination.current_page - 1) * pagination.per_page + i + 1}</td>
                         <td className="px-4 py-3 font-medium text-slate-800">{item.pelanggan?.nama_pelanggan || "-"}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{item.pelanggan?.jenis_kelamin || "-"}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{tanggalFormatted}</td>
-                        {/* Menghapus max-width agar kolom menyesuaikan secara otomatis */}
-                        <td className="px-4 py-3 font-medium text-blue-900">
-                          {namaKrupuk}
-                        </td>
+                        <td className="px-4 py-3 font-medium text-blue-900">{namaKrupuk}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{hargaSatuPcs}</td>
                         <td className="px-4 py-3 text-center">{item.total_pembelian || 0}</td>
                         <td className="px-4 py-3 font-semibold text-[#1E3A5F] whitespace-nowrap">
@@ -163,9 +170,9 @@ const TransaksiPenjualan = () => {
                         <td className="px-4 py-3">{item.pedagang || "-"}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-center gap-2">
-                            <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200" />
-                            <img src={editIcon} alt="edit" onClick={() => navigate(`/admin/edit/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer hover:bg-yellow-200" />
-                            <img src={hapusIcon} alt="hapus" onClick={() => handleHapus(item.id_transaksi)} className="w-8 h-8 p-1.5 rounded-md bg-red-100 cursor-pointer hover:bg-red-200" />
+                            <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200 transition" />
+                            <img src={editIcon} alt="edit" onClick={() => navigate(`/admin/edit/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer hover:bg-yellow-200 transition" />
+                            <img src={hapusIcon} alt="hapus" onClick={() => handleHapus(item.id_transaksi)} className="w-8 h-8 p-1.5 rounded-md bg-red-100 cursor-pointer hover:bg-red-200 transition" />
                           </div>
                         </td>
                       </tr>
@@ -174,12 +181,40 @@ const TransaksiPenjualan = () => {
                 ) : (
                   <tr>
                     <td colSpan="11" className="px-4 py-10 text-center text-red-500 italic">
-                      {searchTerm ? `Nama "${searchTerm}" tidak ditemukan.` : `Tidak ada data di tahun ${tahunTerpilih}.`}
+                      Tidak ada data ditemukan.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Pagination Controls - Tambahan agar bisa navigasi 380rb data */}
+        <div className="px-8 flex items-center justify-between mt-2 mb-10">
+          <p className="text-sm text-slate-500">
+            Menampilkan <span className="font-bold">{dataFiltered.length}</span> data per halaman (Total: {pagination.total?.toLocaleString('id-ID')} transaksi)
+          </p>
+          <div className="flex items-center gap-3">
+            <button 
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="p-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <FiChevronLeft size={20} />
+            </button>
+            <div className="flex items-center gap-1 font-medium text-sm">
+              <span className="px-3 py-1 bg-[#1E3A5F] text-white rounded-md">{pagination.current_page}</span>
+              <span className="text-slate-400">dari</span>
+              <span className="px-3 py-1 bg-gray-100 rounded-md">{pagination.last_page}</span>
+            </div>
+            <button 
+              disabled={page === pagination.last_page}
+              onClick={() => setPage(page + 1)}
+              className="p-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <FiChevronRight size={20} />
+            </button>
           </div>
         </div>
       </div>

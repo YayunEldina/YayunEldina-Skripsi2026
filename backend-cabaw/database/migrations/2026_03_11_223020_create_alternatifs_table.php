@@ -7,22 +7,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up()
-    {
-        Schema::create('alternatifs', function (Blueprint $table) {
-            $table->string('kode_alternatif', 10)->primary();
-            $table->string('nama_alternatif', 100);
-            $table->string('pedagang', 100); // <-- Tambahkan di sini
+{
+    Schema::create('alternatifs', function (Blueprint $table) {
+        // Kita gunakan id() agar konsisten dengan tabel lainnya
+        $table->id('id_alternatif'); 
+        $table->string('kode_alternatif', 10)->unique(); // Kode tetap ada tapi bukan Primary Key utama
+        $table->string('nama_alternatif', 100);
+        $table->string('pedagang', 100);
 
-            $table->string('id_pelanggan', 10);
-            
-            $table->foreign('id_pelanggan')
-                  ->references('id_pelanggan')
-                  ->on('pelanggan')
-                  ->onDelete('cascade');
-            
-            $table->timestamps();
-        });
-    }
+        // BAGIAN PENTING: Menghubungkan ke ID Pelanggan yang baru (Integer)
+        $table->foreignId('id_pelanggan')->constrained('pelanggan', 'id_pelanggan')->onDelete('cascade');
+        
+        $table->timestamps();
+    });
+}
 
     public function down()
     {

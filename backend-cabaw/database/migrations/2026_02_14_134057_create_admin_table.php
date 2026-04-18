@@ -10,16 +10,15 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::create('admin', function (Blueprint $table) {
-        $table->string('id_admin', 10)->primary();
-        $table->string('nama_admin', 100);
-        $table->string('username', 50);
-        $table->string('password', 255);
-        $table->timestamps();
-    });
-}
-
+    {
+        Schema::create('admin', function (Blueprint $table) {
+            $table->id('id_admin'); // Berubah dari string ke id (Auto Increment)
+            $table->string('nama_admin', 100);
+            $table->string('username', 50)->unique();
+            $table->string('password', 255);
+            $table->timestamps();
+        });
+    }
     /**
      * Reverse the migrations.
      */

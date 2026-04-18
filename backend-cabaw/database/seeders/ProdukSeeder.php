@@ -13,17 +13,18 @@ class ProdukSeeder extends Seeder
         Schema::disableForeignKeyConstraints();
         DB::table('produk')->truncate();
 
+        // Hapus 'id_produk' dari array, biarkan database mengisinya otomatis
         DB::table('produk')->insert([
-            ['id_produk' => 'PR01', 'nama_produk' => 'Uyel Putih', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR02', 'nama_produk' => 'Uyel Kuning', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR03', 'nama_produk' => 'Kotak', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR04', 'nama_produk' => 'Ikan', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR05', 'nama_produk' => 'Pedas', 'harga' => 2500, 'kategori' => 'Pedas'],
-            ['id_produk' => 'PR06', 'nama_produk' => 'Saleho', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR07', 'nama_produk' => 'Gorok', 'harga' => 2500, 'kategori' => 'Manis'],
-            ['id_produk' => 'PR08', 'nama_produk' => 'Keong', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR09', 'nama_produk' => 'Jari', 'harga' => 2500, 'kategori' => 'Gurih'],
-            ['id_produk' => 'PR10', 'nama_produk' => 'Padi', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Uyel Putih', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Uyel Kuning', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Kotak', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Ikan', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Pedas', 'harga' => 2500, 'kategori' => 'Pedas'],
+            ['nama_produk' => 'Saleho', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Gorok', 'harga' => 2500, 'kategori' => 'Manis'],
+            ['nama_produk' => 'Keong', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Jari', 'harga' => 2500, 'kategori' => 'Gurih'],
+            ['nama_produk' => 'Padi', 'harga' => 2500, 'kategori' => 'Gurih'],
         ]);
 
         Schema::enableForeignKeyConstraints();

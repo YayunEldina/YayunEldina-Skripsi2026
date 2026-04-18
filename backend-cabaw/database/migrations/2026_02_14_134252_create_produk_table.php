@@ -9,7 +9,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('produk', function (Blueprint $table) {
-            $table->string('id_produk', 10)->primary();
+            $table->id('id_produk'); // Berubah ke Auto Increment
             $table->string('nama_produk', 100);
             $table->integer('harga');
             $table->string('kategori', 50);

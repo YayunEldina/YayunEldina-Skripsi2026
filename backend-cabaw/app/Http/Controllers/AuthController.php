@@ -19,16 +19,14 @@ class AuthController extends Controller
             'password'   => 'required|string|min:6'
         ]);
 
-        // Generate ID Admin otomatis (Contoh: AD00001)
-        $last = Admin::orderBy('id_admin', 'desc')->first();
-        $number = $last ? ((int) substr($last->id_admin, 2)) + 1 : 1;
-        $idAdmin = 'AD' . str_pad($number, 5, '0', STR_PAD_LEFT);
+        // KODE LAMA GENERATE ID DIHAPUS
+        // Sekarang cukup insert nama, username, dan password saja.
+        // id_admin akan otomatis terisi angka (1, 2, 3...) oleh database.
 
         $admin = Admin::create([
-            'id_admin'   => $idAdmin,
             'nama_admin' => $request->nama_admin,
             'username'   => $request->username,
-            'password'   => Hash::make($request->password), // Enkripsi password
+            'password'   => Hash::make($request->password), 
         ]);
 
         return response()->json([
@@ -45,7 +43,7 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        // Cek di tabel Admin dahulu
+        // Cek di tabel Admin
         $user = Admin::where('username', $request->username)->first();
         $role = 'admin';
 
@@ -55,12 +53,12 @@ class AuthController extends Controller
             $role = 'pelanggan';
         }
 
-        // Jika user tidak ditemukan di kedua tabel
+        // Jika user tidak ditemukan
         if (!$user) {
             return response()->json(['message' => 'Username tidak ditemukan'], 404);
         }
 
-        // Cek Password (menggunakan Hash::check karena password di DB terenkripsi)
+        // Cek Password
         if (!Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Password salah'], 401);
         }

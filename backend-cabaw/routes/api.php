@@ -18,5 +18,6 @@ Route::get('/kriterias', [KriteriaController::class, 'index']);
 Route::get('/alternatifs', [AlternatifController::class, 'index']);
 Route::get('/proses-perhitungan', [PerhitunganController::class, 'hitungFuzzyTopsis']);
 Route::get('/transaksi', [TransaksiController::class, 'index']);
+Route::post('/transaksi', [TransaksiController::class, 'store']);
 Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroy']);
 

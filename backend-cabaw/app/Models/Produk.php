@@ -8,9 +8,7 @@ class Produk extends Model
 {
     protected $table = 'produk';
     protected $primaryKey = 'id_produk';
-    protected $keyType = 'string'; // PENTING: ID Anda string (PR01)
-    public $incrementing = false;  // PENTING: Bukan auto-increment angka
-    public $timestamps = true;
+    // HAPUS incrementing false dan keyType string
 
     protected $fillable = [
         'nama_produk',

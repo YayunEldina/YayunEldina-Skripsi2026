@@ -12,11 +12,12 @@ return new class extends Migration
     public function up()
     {
         Schema::create('kriterias', function (Blueprint $table) {
-            $table->string('kode_kriteria', 10)->primary();
+            $table->id('id_kriteria'); // Auto Increment ID
+            $table->string('kode_kriteria', 10)->unique(); // Contoh: C1, C2
             $table->string('nama_kriteria', 100);
             $table->integer('bobot');
-            $table->string('bobot_fuzzy', 50); // Menyimpan format (x, y, z)
-            $table->string('atribut', 10); // 'Benefit' atau 'Cost'
+            $table->string('bobot_fuzzy', 50); 
+            $table->string('atribut', 10); 
             $table->timestamps();
         });
     }

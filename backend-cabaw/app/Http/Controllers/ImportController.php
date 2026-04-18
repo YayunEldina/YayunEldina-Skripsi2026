@@ -12,15 +12,17 @@ class ImportController extends Controller
 {
     public function importSemua(Request $request)
     {
-        if (!$request->hasFile('file')) return response()->json(['message' => 'File tidak ada!'], 400);
-        
-        ini_set('max_execution_time', 1800); 
-        ini_set('memory_limit', '1G');       
+        if (!$request->hasFile('file')) {
+            return response()->json(['message' => 'File tidak ada!'], 400);
+        }
+
+        ini_set('max_execution_time', 1800);
+        ini_set('memory_limit', '1G');
 
         $filePath = $request->file('file')->getRealPath();
         $fastExcel = new FastExcel();
 
-        // 1. KOSONGKAN TABEL
+        // RESET DATABASE
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('detail_transaksi')->truncate();
         DB::table('transaksi')->truncate();
@@ -32,27 +34,68 @@ class ImportController extends Controller
         $allAlternatif = [];
         $allTransaksi = [];
         $allDetail = [];
-        
-        // Counter ID Manual (Opsi 2)
+
         $plCount = 1;
         $trCount = 1;
-        $dtCount = 1; // Counter untuk detail transaksi
+        $dtCount = 1;
 
-        for ($i = 0; $i < 5; $i++) {
-            $rows = $fastExcel->withoutHeaders()->sheet($i)->import($filePath);
-            $data = $rows->slice(5);
+        // =========================
+        // 🔥 AUTO AMBIL SEMUA SHEET
+        // =========================
+        $allSheets = $fastExcel->withoutHeaders()->importSheets($filePath);
+
+        foreach ($allSheets as $i => $rows) {
+
+            // fallback tahun
+            $tahunOtomatis = 2021 + $i;
+
+            // skip kalau sheet kosong
+            if (count($rows) == 0) continue;
+
+            $data = collect($rows)->slice(5);
+
+            // skip kalau tidak ada data
+            if ($data->isEmpty()) continue;
 
             foreach ($data as $line) {
+
                 if (empty($line[2])) continue;
 
+                // VALIDASI TANGGAL
+                if (!isset($line[4]) || !isset($line[5])) continue;
+                if (!is_numeric($line[4]) || !is_numeric($line[5])) continue;
+
+                $tgl = (int)$line[4];
+                $bln = (int)$line[5];
+
+                if ($tgl <= 0 || $tgl > 31 || $bln <= 0 || $bln > 12) continue;
+
+                // =========================
+                // 🔥 FIX TAHUN (PRIORITAS DARI EXCEL)
+                // =========================
+                if (isset($line[6]) && is_numeric($line[6]) && $line[6] > 2000) {
+                    $tahun = (int)$line[6];
+                } else {
+                    $tahun = $tahunOtomatis;
+                }
+
+                $tanggal = $tahun . '-' .
+                    str_pad($bln, 2, '0', STR_PAD_LEFT) . '-' .
+                    str_pad($tgl, 2, '0', STR_PAD_LEFT);
+
+                // DATA UTAMA
                 $namaBersih = trim($line[2]);
                 $pedagang = $line[21] ?? '-';
+
                 $keyPelanggan = strtolower($namaBersih);
                 $keyAlternatif = $keyPelanggan . '|' . strtolower($pedagang);
 
-                // LOGIKA PELANGGAN
+                // =========================
+                // PELANGGAN (INT)
+                // =========================
                 if (!isset($allPelanggan[$keyPelanggan])) {
-                    $idPelanggan = 'PL' . str_pad($plCount++, 5, '0', STR_PAD_LEFT);
+                    $idPelanggan = $plCount++;
+
                     $allPelanggan[$keyPelanggan] = [
                         'id_pelanggan'   => $idPelanggan,
                         'nama_pelanggan' => $namaBersih,
@@ -63,12 +106,15 @@ class ImportController extends Controller
                         'no_telepon'     => '0'
                     ];
                 }
+
                 $idPelanggan = $allPelanggan[$keyPelanggan]['id_pelanggan'];
 
-                // LOGIKA ALTERNATIF
+                // =========================
+                // ALTERNATIF (INT)
+                // =========================
                 if (!isset($allAlternatif[$keyAlternatif])) {
                     $allAlternatif[$keyAlternatif] = [
-                        'kode_alternatif' => 'A' . (count($allAlternatif) + 1),
+                        'kode_alternatif' => count($allAlternatif) + 1,
                         'nama_alternatif' => $namaBersih,
                         'pedagang'        => $pedagang,
                         'id_pelanggan'    => $idPelanggan,
@@ -76,10 +122,11 @@ class ImportController extends Controller
                     ];
                 }
 
-                // LOGIKA TRANSAKSI
-                $idTransaksi = 'TR' . str_pad($trCount++, 7, '0', STR_PAD_LEFT); // TR0000001
-                $tanggal = $line[6] . '-' . str_pad($line[5], 2, '0', STR_PAD_LEFT) . '-' . str_pad($line[4], 2, '0', STR_PAD_LEFT);
-                
+                // =========================
+                // TRANSAKSI (INT)
+                // =========================
+                $idTransaksi = $trCount++;
+
                 $allTransaksi[] = [
                     'id_transaksi'     => $idTransaksi,
                     'tanggal'          => $tanggal,
@@ -91,15 +138,17 @@ class ImportController extends Controller
                     'created_at'       => now(),
                 ];
 
-                // LOGIKA DETAIL TRANSAKSI (PERBAIKAN OPSI 2)
+                // =========================
+                // DETAIL TRANSAKSI (INT)
+                // =========================
                 for ($j = 0; $j < 10; $j++) {
                     $qty = (int)($line[8 + $j] ?? 0);
+
                     if ($qty > 0) {
                         $allDetail[] = [
-                            // ID Detail sekarang pendek, misal: DT0000001
-                            'id_detail'    => 'DT' . str_pad($dtCount++, 8, '0', STR_PAD_LEFT), 
+                            'id_detail'    => $dtCount++,
                             'id_transaksi' => $idTransaksi,
-                            'id_produk'    => 'PR' . str_pad($j + 1, 2, '0', STR_PAD_LEFT), 
+                            'id_produk'    => $j + 1,
                             'jumlah'       => $qty,
                             'sub_total'    => $qty * 2500,
                             'created_at'   => now(),
@@ -107,23 +156,26 @@ class ImportController extends Controller
                     }
                 }
 
-                // Tiap 500 baris transaksi (biar hemat RAM), langsung save ke DB
+                // SIMPAN PER 500 DATA
                 if (count($allTransaksi) >= 500) {
                     $this->saveToDb($allPelanggan, $allAlternatif, $allTransaksi, $allDetail);
                     $allTransaksi = [];
                     $allDetail = [];
-                    // Pelanggan & Alternatif jangan direset karena butuh dicek uniknya
                 }
             }
         }
 
-        // Insert sisa data
+        // SIMPAN SISA DATA
         $this->saveToDb($allPelanggan, $allAlternatif, $allTransaksi, $allDetail);
 
-        return response()->json(['status' => true, 'message' => 'Sukses Import 50.000+ Data!']);
+        return response()->json([
+            'status' => true,
+            'message' => 'SEMUA SHEET (2021-2025) BERHASIL MASUK SEMUA ✅🔥'
+        ]);
     }
 
-    private function saveToDb($pelanggan, $alternatif, $transaksi, $detail) {
+    private function saveToDb($pelanggan, $alternatif, $transaksi, $detail)
+    {
         DB::transaction(function () use ($pelanggan, $alternatif, $transaksi, $detail) {
             if (!empty($pelanggan)) Pelanggan::insertOrIgnore(array_values($pelanggan));
             if (!empty($alternatif)) Alternatif::insertOrIgnore(array_values($alternatif));

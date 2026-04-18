@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Kriteria extends Model
 {
     protected $table = 'kriterias';
-    protected $primaryKey = 'kode_kriteria';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $primaryKey = 'id_kriteria'; // Sesuai migration baru
 
     protected $fillable = [
         'kode_kriteria', 
