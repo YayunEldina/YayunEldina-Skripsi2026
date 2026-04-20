@@ -171,7 +171,7 @@ const TransaksiPenjualan = () => {
                         <td className="px-4 py-3">
                           <div className="flex justify-center gap-2">
                             <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200 transition" />
-                            <img src={editIcon} alt="edit" onClick={() => navigate(`/admin/edit/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer hover:bg-yellow-200 transition" />
+                            <img src={editIcon} alt="edit" onClick={() => navigate(`/admin/transaksi/edit/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer hover:bg-yellow-200 transition" />
                             <img src={hapusIcon} alt="hapus" onClick={() => handleHapus(item.id_transaksi)} className="w-8 h-8 p-1.5 rounded-md bg-red-100 cursor-pointer hover:bg-red-200 transition" />
                           </div>
                         </td>

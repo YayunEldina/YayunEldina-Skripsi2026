@@ -25,7 +25,7 @@ function App() {
         <Route path="/admin/dashboard" element={<DashboardAdmin />} />
         <Route path="/admin/transaksi" element={<TransaksiPenjualan />} />
         <Route path="/admin/tambah/transaksi" element={<TambahTransaksiPenjualan />} />
-        <Route path="/admin/edit/transaksi" element={<EditTransaksiPenjualan />} />
+        <Route path="/admin/transaksi/edit/:id" element={<EditTransaksiPenjualan />} />
         <Route path="/admin/lihat/transaksi" element={<LihatTransaksiPenjualan />} />
         <Route path="/admin/alternatif" element={<Alternatif />} />
         <Route path="/admin/kriteria" element={<Kriteria />} />

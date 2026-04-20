@@ -1,141 +1,133 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import SidebarNavigation from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
-import TampilanElemen from "../dashboard/TampilanElemen";
 
-export default function EditTransaksiPenjualan() {
+const EditTransaksiPenjualan = () => {
   const navigate = useNavigate();
-  // ==============================
-  // SIMULASI DATA LAMA
-  // ==============================
-  const dataLama = {
-    nama: "Yayun",
-    jenisKelamin: "Perempuan",
-    tanggal: "2026-02-16",
-    bulan: "2026-02",
-    tahun: "2026",
-    tempat: "Pasar Panggul",
-    harga: "2.500",
-    items: {
-      "Uyel Putih": 10,
-      "Krupuk Pedas": 5,
-    },
-  };
+  const { id } = useParams();
 
-  const [nama, setNama] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [namaPelanggan, setNamaPelanggan] = useState("");
   const [jenisKelamin, setJenisKelamin] = useState("");
   const [tanggal, setTanggal] = useState("");
-  const [bulan, setBulan] = useState("");
-  const [tahun, setTahun] = useState("");
-  const [tempat, setTempat] = useState("");
-
+  const [tempatTransaksi, setTempatTransaksi] = useState("");
+  const [pedagang, setPedagang] = useState("");
   const [selectedKerupuk, setSelectedKerupuk] = useState([]);
   const [jumlah, setJumlah] = useState({});
-  const [harga, setHarga] = useState("");
+  const [harga, setHarga] = useState("2500");
 
   const daftarKerupuk = [
-    "Uyel Putih",
-    "Uyel Kuning",
-    "Krupuk Ikan",
-    "Krupuk Pedas",
-    "Krupuk Gorok",
+    "Uyel Putih","Uyel Kuning","Kotak","Ikan",
+    "Pedas","Saleho","Gorok","Keong","Jari","Padi"
   ];
 
-  // ==============================
-  // LOAD DATA LAMA
-  // ==============================
+  // ================= FETCH =================
   useEffect(() => {
-    setNama(dataLama.nama);
-    setJenisKelamin(dataLama.jenisKelamin);
-    setTanggal(dataLama.tanggal);
-    setBulan(dataLama.bulan);
-    setTahun(dataLama.tahun);
-    setTempat(dataLama.tempat);
-    setHarga(dataLama.harga);
-    setSelectedKerupuk(Object.keys(dataLama.items));
-    setJumlah(dataLama.items);
-  }, []);
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`http://127.0.0.1:8000/api/transaksi/${id}`);
+        console.log("DATA API:", res.data); // DEBUG
 
-  // ==============================
-  // FORMAT HARGA (2.500)
-  // ==============================
-  const handleHargaChange = (e) => {
-    let value = e.target.value.replace(/\D/g, "");
-    value = new Intl.NumberFormat("id-ID").format(value);
-    setHarga(value);
-  };
+      const data = res.data.data || res.data; // FLEXIBLE (AMAN)
 
-  // ==============================
-  // TOTAL PEMBELIAN
-  // ==============================
+      setNamaPelanggan(
+        data.pelanggan?.nama_pelanggan || ""
+      );
+      
+      setJenisKelamin(
+        data.pelanggan?.jenis_kelamin || ""
+      );
+        setTanggal(data.tanggal ? data.tanggal.split(" ")[0] : "");
+        setTempatTransaksi(data.tempat_transaksi || "");
+        setPedagang(data.pedagang || "");
+
+        const details = data.detail_transaksi || [];
+
+        const itemsMap = {};
+        const itemsLabel = [];
+
+        details.forEach((dt) => {
+          const nama = dt.produk?.nama_produk || dt.nama_produk;
+          if (nama) {
+            itemsMap[nama] = dt.jumlah || "";
+            itemsLabel.push(nama);
+          }
+        });
+
+        setJumlah(itemsMap);
+        setSelectedKerupuk(itemsLabel);
+
+      } catch (err) {
+        alert("Gagal ambil data!");
+        navigate("/admin/transaksi");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchData();
+  }, [id, navigate]);
+
+  // ================= TOTAL =================
   const totalPembelian = useMemo(() => {
     return Object.values(jumlah).reduce(
-      (acc, val) => acc + (parseInt(val) || 0),
-      0
+      (acc, val) => acc + (parseInt(val) || 0), 0
     );
   }, [jumlah]);
 
-  // ==============================
-  // TOTAL HARGA
-  // ==============================
   const totalHarga = useMemo(() => {
-    const hargaNumber = parseInt(harga.replace(/\./g, "")) || 0;
-    return totalPembelian * hargaNumber;
+    return totalPembelian * (parseInt(harga) || 0);
   }, [totalPembelian, harga]);
 
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat("id-ID").format(number);
-  };
-
-  // ==============================
-  // SELECT KERUPUK
-  // ==============================
+  // ================= HANDLE =================
   const handleSelectKerupuk = (value) => {
     if (!value || value === "-Pilih jenis kerupuk-") return;
 
     if (!selectedKerupuk.includes(value)) {
       setSelectedKerupuk([...selectedKerupuk, value]);
-      setJumlah({ ...jumlah, [value]: 0 });
+      setJumlah({ ...jumlah, [value]: "" });
     }
   };
 
-  const handleJumlahChange = (item, value) => {
-    setJumlah({
-      ...jumlah,
-      [item]: value,
-    });
-  };
-
-  const handleRemoveItem = (item) => {
-    const updatedSelected = selectedKerupuk.filter((i) => i !== item);
-    const updatedJumlah = { ...jumlah };
-    delete updatedJumlah[item];
-
-    setSelectedKerupuk(updatedSelected);
-    setJumlah(updatedJumlah);
-  };
-
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     const payload = {
-      nama,
-      jenisKelamin,
+      nama_pelanggan: namaPelanggan,
+      jenis_kelamin: jenisKelamin,
       tanggal,
-      bulan,
-      tahun,
-      tempat,
-      harga: parseInt(harga.replace(/\./g, "")),
-      totalPembelian,
-      totalHarga,
-      detail: jumlah,
+      tempat_transaksi: tempatTransaksi,
+      pedagang,
+      total_pembelian: totalPembelian,
+      total_harga: totalHarga,
+      harga_per_pcs: parseInt(harga) || 0,
+      items: selectedKerupuk.map(item => ({
+        nama: item,
+        jumlah: parseInt(jumlah[item]) || 0
+      }))
     };
 
-    console.log("Data Update:", payload);
-    alert("Transaksi berhasil diperbarui ✅");
+    try {
+      await axios.put(`http://127.0.0.1:8000/api/transaksi/${id}`, payload);
+      alert("Berhasil update!");
+      navigate("/admin/transaksi");
+    } catch (err) {
+      alert("Gagal update!");
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-600">
+        Loading...
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-[#F4F7FE] min-h-screen">
+
       {/* SIDEBAR */}
       <div className="fixed top-0 left-0 h-full w-[260px] z-40">
         <SidebarNavigation />
@@ -143,135 +135,113 @@ export default function EditTransaksiPenjualan() {
 
       {/* MAIN */}
       <div className="ml-[260px] flex flex-col min-h-screen">
-        <div className="sticky top-0 z-30 bg-[#F8F9FC]">
+
+        {/* NAVBAR */}
+        <div className="sticky top-0 z-30 bg-white shadow-sm">
           <NavbarAdmin />
         </div>
 
-        <div className="px-5 mt-10">
-          <TampilanElemen />
-        </div>
+        {/* CONTENT */}
+        <div className="px-10 py-10">
+          <div className="bg-white rounded-3xl border border-gray-100 p-10 shadow-md">
 
-        <div className="px-10 py-8">
-          <div className="bg-white rounded-3xl border border-gray-200 p-10">
-            <h1 className="text-2xl font-bold mb-12">
-              Edit Transaksi Baru
+            <h1 className="text-2xl font-bold mb-12 text-[#1E3A5F]">
+              Edit Transaksi
             </h1>
 
             <div className="grid grid-cols-2 gap-14">
 
-              {/* ================= LEFT ================= */}
+              {/* KIRI */}
               <div className="space-y-7">
 
                 <div>
-                  <label className="block mb-2 font-medium">
-                    Nama Pengguna
+                  <label className="block mb-2 text-sm text-gray-700">
+                    Nama Pelanggan
                   </label>
                   <input
-                    type="text"
-                    value={nama}
-                    onChange={(e) => setNama(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#1E3A5F]"
+                    value={namaPelanggan}
+                    onChange={(e)=>setNamaPelanggan(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-medium">
+                  <label className="block mb-2 text-sm text-gray-700">
                     Jenis Kelamin
                   </label>
                   <select
                     value={jenisKelamin}
-                    onChange={(e) => setJenisKelamin(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#1E3A5F]"
+                    onChange={(e)=>setJenisKelamin(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
                   >
-                    <option>-Pilih jenis kelamin-</option>
-                    <option>Laki-laki</option>
-                    <option>Perempuan</option>
+                    <option value="">-Pilih jenis kelamin-</option>
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-medium">
+                  <label className="block mb-2 text-sm text-gray-700">
                     Tanggal
                   </label>
                   <input
                     type="date"
                     value={tanggal}
-                    onChange={(e) => setTanggal(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#1E3A5F]"
+                    onChange={(e)=>setTanggal(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-medium">
-                    Bulan
+                  <label className="block mb-2 text-sm text-gray-700">
+                    Tempat Transaksi
                   </label>
                   <input
-                    type="month"
-                    value={bulan}
-                    onChange={(e) => setBulan(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#1E3A5F]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 font-medium">
-                    Tahun
-                  </label>
-                  <input
-                    type="number"
-                    value={tahun}
-                    onChange={(e) => setTahun(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#1E3A5F]"
+                    value={tempatTransaksi}
+                    onChange={(e)=>setTempatTransaksi(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
                   />
                 </div>
 
               </div>
 
-              {/* ================= RIGHT ================= */}
+              {/* KANAN */}
               <div className="space-y-7">
 
                 <div>
-                  <label className="block mb-2 font-medium">
-                    Jenis Kerupuk
+                  <label className="block mb-2 text-sm text-gray-700">
+                    Pilih Jenis Kerupuk
                   </label>
 
                   <select
-                    onChange={(e) =>
-                      handleSelectKerupuk(e.target.value)
-                    }
+                    onChange={(e)=>handleSelectKerupuk(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-3"
                   >
                     <option>-Pilih jenis kerupuk-</option>
-                    {daftarKerupuk.map((item, i) => (
-                      <option key={i} value={item}>
-                        {item}
-                      </option>
+                    {daftarKerupuk.map((item,i)=>(
+                      <option key={i} value={item}>{item}</option>
                     ))}
                   </select>
 
-                  <div className="space-y-3">
-                    {selectedKerupuk.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center border border-gray-300 rounded-xl px-4 py-3"
-                      >
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {selectedKerupuk.map((item,i)=>(
+                      <div key={i} className="flex justify-between items-center border border-gray-200 rounded-xl px-4 py-3 bg-white shadow-sm">
                         <span>{item}</span>
-
-                        <div className="flex items-center gap-2">
+                        <div className="flex gap-3">
                           <input
                             type="number"
-                            min="0"
-                            value={jumlah[item] || ""}
-                            onChange={(e) =>
-                              handleJumlahChange(item, e.target.value)
-                            }
-                            className="w-20 border rounded-lg px-2 py-1 text-center"
+                            value={jumlah[item]}
+                            onChange={(e)=>setJumlah({...jumlah,[item]:e.target.value})}
+                            className="w-20 border border-gray-300 rounded text-center"
                           />
-                          <span className="text-gray-500">pcs</span>
-
                           <button
-                            onClick={() => handleRemoveItem(item)}
-                            className="text-red-500 text-sm hover:underline"
+                            onClick={()=>{
+                              const newJumlah={...jumlah};
+                              delete newJumlah[item];
+                              setJumlah(newJumlah);
+                              setSelectedKerupuk(selectedKerupuk.filter(k=>k!==item));
+                            }}
+                            className="text-red-500"
                           >
                             Hapus
                           </button>
@@ -282,69 +252,44 @@ export default function EditTransaksiPenjualan() {
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-medium">
-                    Harga per Pcs
+                  <label className="block mb-2 text-sm text-gray-700">
+                    Nama Pedagang
                   </label>
                   <input
-                    type="text"
-                    value={harga}
-                    onChange={handleHargaChange}
+                    value={pedagang}
+                    onChange={(e)=>setPedagang(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-4 py-3"
                   />
                 </div>
 
-                <div>
-                  <label className="block mb-2 font-medium">
-                    Total Pembelian
-                  </label>
-                  <input
-                    type="number"
-                    value={totalPembelian}
-                    readOnly
-                    className="w-full bg-gray-100 border border-gray-300 rounded-xl px-4 py-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 font-medium">
-                    Total Harga
-                  </label>
-                  <input
-                    type="text"
-                    value={`Rp ${formatRupiah(totalHarga)}`}
-                    readOnly
-                    className="w-full bg-gray-100 border border-gray-300 rounded-xl px-4 py-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="block mb-2 font-medium">
-                    Tempat Transaksi
-                  </label>
-                  <input
-                    type="text"
-                    value={tempat}
-                    onChange={(e) => setTempat(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3"
-                  />
+                {/* TOTAL */}
+                <div className="pt-6 border-t">
+                  <div className="flex justify-between">
+                    <span>Total Pembelian:</span>
+                    <span>{totalPembelian} pcs</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-[#1E3A5F]">
+                    <span>Total Harga:</span>
+                    <span>Rp {totalHarga.toLocaleString("id-ID")}</span>
+                  </div>
                 </div>
 
               </div>
             </div>
 
             <div className="flex justify-end gap-4 mt-16">
-            <button
-                onClick={() => navigate("/admin/transaksi")}
-                className="px-6 py-3 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100"
+              <button
+                onClick={()=>navigate("/admin/transaksi")}
+                className="px-8 py-3 border border-gray-300 rounded-xl hover:bg-gray-100"
               >
                 Batal
               </button>
 
               <button
                 onClick={handleUpdate}
-                className="px-6 py-3 rounded-xl bg-[#1E3A5F] text-white hover:opacity-90"
+                className="px-8 py-3 bg-[#1E3A5F] hover:bg-[#16324a] text-white rounded-xl shadow"
               >
-                Update
+                Update Transaksi
               </button>
             </div>
 
@@ -353,4 +298,6 @@ export default function EditTransaksiPenjualan() {
       </div>
     </div>
   );
-}
+};
+
+export default EditTransaksiPenjualan;

@@ -19,5 +19,7 @@ Route::get('/alternatifs', [AlternatifController::class, 'index']);
 Route::get('/proses-perhitungan', [PerhitunganController::class, 'hitungFuzzyTopsis']);
 Route::get('/transaksi', [TransaksiController::class, 'index']);
 Route::post('/transaksi', [TransaksiController::class, 'store']);
+Route::get('/transaksi/{id}', [TransaksiController::class, 'show']); // Tambahkan ini
+Route::put('/transaksi/{id}', [TransaksiController::class, 'update']); // Untuk update nanti
 Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroy']);
 
