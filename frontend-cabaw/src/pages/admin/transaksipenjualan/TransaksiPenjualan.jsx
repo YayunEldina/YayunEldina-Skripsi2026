@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FiSearch, FiFilter, FiChevronLeft, FiChevronRight } from "react-icons/fi";
@@ -56,13 +57,37 @@ const TransaksiPenjualan = () => {
   });
 
   const handleHapus = async (id) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+    const result = await Swal.fire({
+      title: "Yakin hapus data?",
+      text: "Data transaksi akan hilang permanen!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#1E3A5F",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+    });
+  
+    if (result.isConfirmed) {
       try {
         await axios.delete(`http://127.0.0.1:8000/api/transaksi/${id}`);
-        alert("Data berhasil dihapus");
+  
+        await Swal.fire({
+          title: "Berhasil!",
+          text: "Data berhasil dihapus",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+  
         fetchTransaksi(tahunTerpilih, page);
+  
       } catch (error) {
-        alert("Gagal menghapus data");
+        Swal.fire({
+          title: "Gagal!",
+          text: "Terjadi kesalahan saat menghapus",
+          icon: "error",
+        });
       }
     }
   };
