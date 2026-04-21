@@ -26,7 +26,7 @@ function App() {
         <Route path="/admin/transaksi" element={<TransaksiPenjualan />} />
         <Route path="/admin/tambah/transaksi" element={<TambahTransaksiPenjualan />} />
         <Route path="/admin/transaksi/edit/:id" element={<EditTransaksiPenjualan />} />
-        <Route path="/admin/lihat/transaksi" element={<LihatTransaksiPenjualan />} />
+        <Route path="/admin/lihat/transaksi/:id" element={<LihatTransaksiPenjualan />} />
         <Route path="/admin/alternatif" element={<Alternatif />} />
         <Route path="/admin/kriteria" element={<Kriteria />} />
         <Route path="/admin/perhitungan" element={<Perhitungan />} />
