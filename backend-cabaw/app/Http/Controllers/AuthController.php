@@ -6,11 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\Admin;
 use App\Models\Pelanggan;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
-    // 1. SIGNUP KHUSUS ADMIN
+    // =========================
+    // 1. SIGNUP ADMIN
+    // =========================
     public function signupAdmin(Request $request)
     {
         $request->validate([
@@ -18,10 +19,6 @@ class AuthController extends Controller
             'username'   => 'required|string|unique:admin,username|max:50',
             'password'   => 'required|string|min:6'
         ]);
-
-        // KODE LAMA GENERATE ID DIHAPUS
-        // Sekarang cukup insert nama, username, dan password saja.
-        // id_admin akan otomatis terisi angka (1, 2, 3...) oleh database.
 
         $admin = Admin::create([
             'nama_admin' => $request->nama_admin,
@@ -35,7 +32,9 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // 2. LOGIN UNTUK ADMIN DAN PELANGGAN
+    // =========================
+    // 2. LOGIN (ADMIN & PELANGGAN)
+    // =========================
     public function login(Request $request)
     {
         $request->validate([
@@ -47,22 +46,35 @@ class AuthController extends Controller
         $user = Admin::where('username', $request->username)->first();
         $role = 'admin';
 
-        // Jika tidak ada di Admin, cek di tabel Pelanggan
+        // Jika tidak ada di Admin → cek Pelanggan
         if (!$user) {
             $user = Pelanggan::where('username', $request->username)->first();
             $role = 'pelanggan';
         }
 
-        // Jika user tidak ditemukan
+        // =========================
+        // VALIDASI USERNAME
+        // =========================
         if (!$user) {
-            return response()->json(['message' => 'Username tidak ditemukan'], 404);
+            return response()->json([
+                'field' => 'username',
+                'message' => 'Nama pengguna tidak ditemukan'
+            ], 404);
         }
 
-        // Cek Password
+        // =========================
+        // VALIDASI PASSWORD
+        // =========================
         if (!Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Password salah'], 401);
+            return response()->json([
+                'field' => 'password',
+                'message' => 'Kata sandi salah'
+            ], 401);
         }
 
+        // =========================
+        // LOGIN BERHASIL
+        // =========================
         return response()->json([
             'message' => 'Login berhasil',
             'role'    => $role,
