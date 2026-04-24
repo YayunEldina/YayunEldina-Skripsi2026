@@ -6,6 +6,7 @@ import NavbarAdmin from "../dashboard/navbar_admin";
 
 const TambahTransaksiPenjualan = () => {
   const navigate = useNavigate();
+  const [errors, setErrors] = useState({});
   
   // State Form
   const [namaPelanggan, setNamaPelanggan] = useState("");
@@ -43,12 +44,32 @@ const TambahTransaksiPenjualan = () => {
     }
   };
 
+  const validateForm = () => {
+    let newErrors = {};
+  
+    if (!namaPelanggan) newErrors.namaPelanggan = "Nama pelanggan harus diisi";
+    if (!jenisKelamin) newErrors.jenisKelamin = "Jenis kelamin harus dipilih";
+    if (!tanggal) newErrors.tanggal = "Tanggal harus diisi";
+    if (!tempatTransaksi) newErrors.tempatTransaksi = "Tempat transaksi harus diisi";
+    if (!pedagang) newErrors.pedagang = "Nama pedagang harus diisi";
+  
+    if (selectedKerupuk.length === 0) {
+      newErrors.kerupuk = "Minimal pilih 1 jenis kerupuk";
+    }
+  
+    selectedKerupuk.forEach((item) => {
+      if (!jumlah[item] || parseInt(jumlah[item]) <= 0) {
+        newErrors[`jumlah_${item}`] = "Jumlah harus diisi";
+      }
+    });
+  
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSimpan = async () => {
     // Validasi input sesuai kolom fillable di Model
-    if (!namaPelanggan || !jenisKelamin || !tanggal || selectedKerupuk.length === 0 || !pedagang || !tempatTransaksi) {
-      alert("Mohon lengkapi seluruh data (Nama, Jenis Kelamin, Tanggal, Tempat, Pedagang, dan Kerupuk)!");
-      return;
-    }
+    if (!validateForm()) return;
 
     const payload = {
       nama_pelanggan: namaPelanggan,
@@ -92,6 +113,9 @@ const TambahTransaksiPenjualan = () => {
                 <div>
                   <label className="block mb-2 font-medium text-slate-700">Nama Pelanggan</label>
                   <input type="text" value={namaPelanggan} onChange={(e) => setNamaPelanggan(e.target.value)} placeholder="Masukkan nama pelanggan" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]" />
+                  {errors.namaPelanggan && (
+                    <p className="text-red-500 text-sm mt-1">{errors.namaPelanggan}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block mb-2 font-medium text-slate-700">Jenis Kelamin</label>
@@ -100,47 +124,130 @@ const TambahTransaksiPenjualan = () => {
                     <option value="Laki-laki">Laki-laki</option>
                     <option value="Perempuan">Perempuan</option>
                   </select>
+                  {errors.jenisKelamin && (
+                    <p className="text-red-500 text-sm mt-1">{errors.jenisKelamin}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block mb-2 font-medium text-slate-700">Tanggal</label>
                   <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]" />
+                  {errors.tanggal && (
+                    <p className="text-red-500 text-sm mt-1">{errors.tanggal}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block mb-2 font-medium text-slate-700">Tempat Transaksi</label>
                   <input type="text" value={tempatTransaksi} onChange={(e) => setTempatTransaksi(e.target.value)} placeholder="Masukkan tempat (Misal: Pasar Wage)" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]" />
+                  {errors.tempatTransaksi && (
+                    <p className="text-red-500 text-sm mt-1">{errors.tempatTransaksi}</p>
+                  )}
                 </div>
               </div>
 
               {/* SISI KANAN: DETAIL PESANAN */}
-              <div className="space-y-7">
-                <div>
-                  <label className="block mb-2 font-medium text-slate-700">Pilih Jenis Kerupuk</label>
-                  <select onChange={(e) => handleSelectKerupuk(e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]">
-                    <option>-Pilih jenis kerupuk-</option>
-                    {daftarKerupuk.map((item, i) => <option key={i} value={item}>{item}</option>)}
-                  </select>
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    {selectedKerupuk.map((item, i) => (
-                      <div key={i} className="flex justify-between items-center border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 shadow-sm transition-all hover:border-blue-200">
-                        <span className="font-medium text-slate-700">{item}</span>
-                        <div className="flex items-center gap-3">
-                          <input type="number" min="1" value={jumlah[item]} onChange={(e) => setJumlah({...jumlah, [item]: e.target.value})} placeholder="0" className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-center focus:ring-2 focus:ring-blue-100 focus:outline-none" />
-                          <button onClick={() => {
-                            const updated = {...jumlah}; delete updated[item]; setJumlah(updated); 
-                            setSelectedKerupuk(selectedKerupuk.filter(k => k !== item))
-                          }} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
-                            Hapus
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+<div className="space-y-7">
+  <div>
+    <label className="block mb-2 font-medium text-slate-700">
+      Pilih Jenis Kerupuk
+    </label>
 
-                <div>
-                  <label className="block mb-2 font-medium text-slate-700">Nama Pedagang</label>
-                  <input type="text" value={pedagang} onChange={(e) => setPedagang(e.target.value)} placeholder="Masukkan nama pedagang" className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]" />
-                </div>
+    <select
+      onChange={(e) => handleSelectKerupuk(e.target.value)}
+      className="w-full border border-gray-300 rounded-xl px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
+    >
+      <option>-Pilih jenis kerupuk-</option>
+      {daftarKerupuk.map((item, i) => (
+        <option key={i} value={item}>{item}</option>
+      ))}
+    </select>
+
+    {errors.kerupuk && (
+      <p className="text-red-500 text-sm mt-1">{errors.kerupuk}</p>
+    )}
+
+    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+      {selectedKerupuk.map((item, i) => (
+        <div
+          key={i}
+          className="flex justify-between items-center border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 shadow-sm transition-all hover:border-blue-200"
+        >
+          <span className="font-medium text-slate-700">{item}</span>
+
+          <div className="flex items-center gap-3">
+            
+            {/* INPUT + ERROR JUMLAH */}
+            <div className="flex flex-col items-center">
+              <input
+                type="number"
+                min="1"
+                value={jumlah[item]}
+                onChange={(e) => {
+                  setJumlah({ ...jumlah, [item]: e.target.value });
+
+                  // hapus error saat user isi
+                  setErrors({
+                    ...errors,
+                    [`jumlah_${item}`]: ""
+                  });
+                }}
+                placeholder="0"
+                className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-center focus:ring-2 focus:ring-blue-100 focus:outline-none"
+              />
+
+              {errors[`jumlah_${item}`] && (
+                <p className="text-red-500 text-xs mt-1 text-center">
+                  {errors[`jumlah_${item}`]}
+                </p>
+              )}
+            </div>
+
+            {/* BUTTON HAPUS */}
+            <button
+              onClick={() => {
+                const updated = { ...jumlah };
+                delete updated[item];
+                setJumlah(updated);
+
+                setSelectedKerupuk(
+                  selectedKerupuk.filter((k) => k !== item)
+                );
+              }}
+              className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+            >
+              Hapus
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* NAMA PEDAGANG */}
+  <div>
+    <label className="block mb-2 font-medium text-slate-700">
+      Nama Pedagang
+    </label>
+
+    <input
+      type="text"
+      value={pedagang}
+      onChange={(e) => {
+        setPedagang(e.target.value);
+
+        // hapus error saat diketik
+        setErrors({
+          ...errors,
+          pedagang: ""
+        });
+      }}
+      placeholder="Masukkan nama pedagang"
+      className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 focus:border-[#1E3A5F]"
+    />
+
+    {errors.pedagang && (
+      <p className="text-red-500 text-sm mt-1">{errors.pedagang}</p>
+    )}
+  </div>
 
                 {/* RINGKASAN HARGA */}
                 <div className="pt-6 border-t border-gray-100">
