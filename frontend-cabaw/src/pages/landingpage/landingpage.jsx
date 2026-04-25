@@ -10,6 +10,7 @@ import Pedas from "../../assets/krupuk_pedas.png";
 import Saleho from "../../assets/krupuk_saleho.png";
 import UyelKuning from "../../assets/krupuk_uyelkuning.png";
 import UyelPutih from "../../assets/krupuk_uyelputih.png";
+import CapBawang from "../../assets/capbawang.jpeg";
 
 export default function LandingPage() {
   const bestSeller = [
@@ -37,7 +38,13 @@ export default function LandingPage() {
       {/* ================= NAVBAR ================= */}
       <nav className="flex items-center justify-between px-16 py-6">
   <div className="flex items-center gap-2">
-    <div className="w-8 h-8 bg-gray-300 rounded" />
+  <div className="w-8 h-13 rounded overflow-hidden">
+  <img
+    src={CapBawang}
+    alt="Cap Bawang"
+    className="w-full h-full object-cover"
+  />
+</div>
     <div>
       <p className="font-bold text-sm">Cabaw</p>
       <p className="text-xs text-gray-500">Krupuk Cap Bawang</p>
