@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import React from "react";
 // IMPORT GAMBAR
 import Gorok from "../../assets/krupuk_gorok.png";
 import Ikan from "../../assets/krupuk_ikan.png";
@@ -11,8 +12,10 @@ import Saleho from "../../assets/krupuk_saleho.png";
 import UyelKuning from "../../assets/krupuk_uyelkuning.png";
 import UyelPutih from "../../assets/krupuk_uyelputih.png";
 import CapBawang from "../../assets/capbawang.jpeg";
+import Stiker from "../../assets/stikerkrupuk.png";
 
 export default function LandingPage() {
+  const [activeFilter, setActiveFilter] = React.useState("Semua");
   const bestSeller = [
     { name: "Krupuk Gorok", img: Gorok },
     { name: "Krupuk Ikan", img: Ikan },
@@ -32,118 +35,130 @@ export default function LandingPage() {
     { name: "Krupuk Jari", img: Jari },
     { name: "Krupuk Keong", img: Keong },
   ];
-  return (
-    <main className="bg-white text-gray-900">
 
-      {/* ================= NAVBAR ================= */}
-      <nav className="flex items-center justify-between px-16 py-6">
-  <div className="flex items-center gap-2">
-  <div className="w-8 h-13 rounded overflow-hidden">
-  <img
-    src={CapBawang}
-    alt="Cap Bawang"
-    className="w-full h-full object-cover"
-  />
-</div>
-    <div>
-      <p className="font-bold text-sm">Cabaw</p>
-      <p className="text-xs text-gray-500">Krupuk Cap Bawang</p>
-    </div>
+  return (
+    <main className="text-gray-900">
+
+      {/* ================= NAVBAR + HERO WRAPPER ================= */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-[#FFF7E6] via-[#FFFDF8] to-white">
+
+       {/* ================= NAVBAR ================= */}
+<nav className="flex items-center justify-between px-16 py-6 relative z-10">
+
+{/* LOGO */}
+<div className="flex items-center gap-3">
+  <div className="w-10 h-10 rounded-lg overflow-hidden">
+    <img
+      src={CapBawang}
+      alt="Cap Bawang"
+      className="w-full h-full object-cover"
+    />
   </div>
 
-  <ul className="flex items-center gap-8 text-sm">
-    <li className="font-semibold cursor-pointer">Beranda</li>
-    <li className="cursor-pointer">Tentang Kami</li>
-    <li className="cursor-pointer">FAQ</li>
+  <div>
+    <p className="font-bold text-base">Cabaw</p>
+    <p className="text-xs text-gray-500">Krupuk Cap Bawang</p>
+  </div>
+</div>
 
-    {/* LOGIN */}
-    <li className="font-semibold">
-      <Link
-        to="/login"
-        className="hover:text-[#1E3A8A] transition"
-      >
-        Login
-      </Link>
-    </li>
-  </ul>
+{/* MENU */}
+<ul className="flex items-center gap-6 text-sm">
+  <li className="font-semibold cursor-pointer hover:text-[#1E3A5F] transition">
+    Beranda
+  </li>
+
+  {/* LOGIN BUTTON (CTA) */}
+  <li>
+    <Link
+      to="/login"
+      className="px-6 py-2.5 bg-[#1E3A5F] text-white font-semibold rounded-[20px] shadow-md hover:bg-[#16324D] transition duration-300"
+    >
+      Login
+    </Link>
+  </li>
+</ul>
+
 </nav>
 
-      {/* ================= HERO ================= */}
-      <section className="px-16 py-16 grid grid-cols-2 gap-10 items-start">
-        <div>
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            Akses ke Krupuk <br />
-            <span className="text-black">Cap Bawang</span> Berkualitas Tinggi
-          </h1>
+    {/* ================= HERO ================= */}
+<section className="px-16 py-16 grid grid-cols-2 gap-10 items-center relative z-10">
+  
+  {/* KIRI (TEXT) */}
+  <div className="mt-10">
+    <h1 className="text-5xl font-bold leading-tight mb-10">
+      Akses ke Krupuk <br />
+      <span className="text-black">Cap Bawang</span> Berkualitas Tinggi
+    </h1>
 
-          <p className="text-gray-600 mb-8 max-w-md">
-            Website ini memperkenalkan Krupuk Cap Bawang dari Trenggalek
-            dengan cita rasa autentik, gurih, dan renyah melalui tampilan
-            digital yang interaktif.
-          </p>
+    <p className="text-gray-600 mb-8 max-w-md">
+      Website ini memperkenalkan Krupuk Cap Bawang dari Trenggalek
+      dengan cita rasa autentik, gurih, dan renyah melalui tampilan
+      digital yang interaktif.
+    </p>
+  </div>
 
-          <div className="flex gap-6 mt-8">
-            <div className="flex-1 h-[220px] rounded-2xl bg-yellow-400" />
-            <div className="flex-1 h-[220px] rounded-2xl bg-gray-200" />
-            <div className="flex-1 h-[220px] rounded-2xl bg-[#B08968]" />
-          </div>
-        </div>
+  {/* KANAN (GAMBAR STIKER) */}
+  <div className="flex justify-center">
+  <img
+  src={Stiker}
+  alt="Stiker Krupuk"
+  className="w-[600px] object-contain mix-blend-darken"
+/>
+  </div>
 
-        <div className="flex flex-col items-center self-start mt-12">
-          <div className="flex items-center mb-4">
-            <div className="w-14 h-14 bg-gray-300 rounded-full" />
-            <div className="w-14 h-14 bg-yellow-400 rounded-full -ml-4" />
-            <div className="w-14 h-14 bg-blue-500 rounded-full -ml-4" />
-          </div>
-          <p className="font-bold">500+</p>
-          <p className="text-sm text-gray-500">Happy Customers</p>
-        </div>
-      </section>
-
-   {/* ================= PRODUK TERLARIS ================= */}
-<section className="px-16 py-20">
-  <h2 className="text-3xl font-bold mb-10">
-    Koleksi Krupuk Cap <br /> Bawang Terlaris Tahun Ini
-  </h2>
-
-  <div className="grid grid-cols-4 gap-8">
-    {[
-      { name: "Krupuk Uyel Putih", img: UyelPutih },
-      { name: "Krupuk Uyel Kuning", img: UyelKuning },
-      { name: "Krupuk Ikan", img: Ikan },
-      { name: "Krupuk Pedas", img: Pedas },
-    ].map((item, i) => (
-      <div key={i} className="group cursor-pointer">
-        
-        {/* KOTAK WARNA HEX SESUAI PERMINTAAN */}
-        <div
-          className="overflow-hidden rounded-2xl p-4"
-          style={{
-            backgroundColor: ["#B08968", "#8B1E1E", "#E5E5E5", "#1E3A5F"][i]
-          }}
-        >
-          <img
-            src={item.img}
-            alt={item.name}
-            className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition duration-300"
-          />
-        </div>
-
-        {/* INFO */}
-        <div className="mt-3">
-          <p className="font-semibold text-sm">{item.name}</p>
-          <p className="text-xs text-yellow-500">
-            ★★★★★ <span className="text-gray-400">(4.9)</span>
-          </p>
-          <p className="font-bold text-sm mt-1">Rp 2.500</p>
-        </div>
+</section>
       </div>
-    ))}
+
+      {/* ================= PRODUK TERLARIS ================= */}
+      <section className="px-10 py-10 bg-gray-100 rounded-3xl mx-6">
+  <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm max-w-[3000px] mx-auto">
+
+  <h2 className="text-4xl font-bold text-center mb-12 leading-tight">
+      Koleksi Krupuk Cap <br />
+      <span className="text-[#1E3A5F]">Bawang Terlaris Tahun Ini</span>
+    </h2>
+
+    <p className="text-gray-600 -mt-6 mb-8 mx-auto text-center whitespace-nowrap">
+  Dibawah ini adalah top 4 produk dari krupuk Cap Bawang terlaris dipasaran
+</p>
+
+    <div className="grid grid-cols-4 gap-8">
+      {[
+        { name: "Krupuk Uyel Putih", img: UyelPutih },
+        { name: "Krupuk Uyel Kuning", img: UyelKuning },
+        { name: "Krupuk Ikan", img: Ikan },
+        { name: "Krupuk Pedas", img: Pedas },
+      ].map((item, i) => (
+        <div key={i} className="group cursor-pointer">
+          <div
+            className="overflow-hidden rounded-2xl p-4"
+            style={{
+              backgroundColor: ["#B08968", "#8B1E1E", "#E5E5E5", "#1E3A5F"][i]
+            }}
+          >
+            <img
+              src={item.img}
+              alt={item.name}
+              className="w-full h-[400px] object-cover rounded-xl group-hover:scale-105 transition duration-300"
+            />
+          </div>
+
+          <div className="mt-3">
+            <p className="font-semibold text-sm">{item.name}</p>
+            <p className="text-xs text-yellow-500">
+              ★★★★★ <span className="text-gray-400">(4.9)</span>
+            </p>
+            <p className="font-bold text-sm mt-1">Rp 2.500</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
   </div>
 </section>
 
-     {/* ================= SEMUA PRODUK ================= */}
-<section className="px-16 py-20 bg-gray-50">
+      {/* ================= SEMUA PRODUK ================= */}
+<section className="px-16 py-20">
   <h2 className="text-3xl font-bold mb-4">
     Seluruh Koleksi Produk Kami
   </h2>
@@ -153,81 +168,147 @@ export default function LandingPage() {
     musim, dan permintaan pasar.
   </p>
 
+  {/* FILTER BUTTON */}
   <div className="flex gap-4 mb-10">
-          {["Gurih", "Pedas", "Manis"].map((tag) => (
-            <button
-              key={tag}
-              className="px-5 py-2 border border-[#E5E5EA] rounded-full text-sm hover:bg-gray-100 transition"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-
-  {/* GRID 5 KOLOM */}
-  <div className="grid grid-cols-5 gap-8">
-    {allProducts.map((item, i) => (
-      <div key={i} className="group cursor-pointer">
-        
-        {/* FOTO FULL TANPA BACKGROUND */}
-        <div className="overflow-hidden rounded-2xl">
-          <img
-            src={item.img}
-            alt={item.name}
-            className="w-full h-[350px] object-cover group-hover:scale-105 transition duration-300"
-          />
-        </div>
-
-        {/* INFO */}
-        <div className="mt-3">
-          <p className="font-semibold text-sm">{item.name}</p>
-          <p className="text-xs text-yellow-500">
-            ★★★★★ <span className="text-gray-400">(4.7)</span>
-          </p>
-          <p className="font-bold text-sm mt-1">Rp 2.500</p>
-        </div>
-      </div>
+    {["Semua", "Gurih", "Pedas", "Manis"].map((tag) => (
+      <button
+        key={tag}
+        onClick={() => setActiveFilter(tag)}
+        className={`px-5 py-2 rounded-full text-sm border transition
+          ${
+            activeFilter === tag
+              ? "bg-[#1E3A5F] text-white border-[#1E3A5F]"
+              : "border-[#E5E5EA] hover:bg-gray-100"
+          }`}
+      >
+        {tag}
+      </button>
     ))}
+  </div>
+
+  {/* GRID */}
+  <div className="grid grid-cols-5 gap-8">
+    {allProducts
+      .filter((item) => {
+        if (activeFilter === "Semua") return true;
+        if (activeFilter === "Gurih") {
+          return item.name !== "Krupuk Gorok" && item.name !== "Krupuk Pedas";
+        }
+        if (activeFilter === "Pedas") {
+          return item.name === "Krupuk Pedas";
+        }
+        if (activeFilter === "Manis") {
+          return item.name === "Krupuk Gorok";
+        }
+        return true;
+      })
+      .map((item, i) => (
+        <div key={i} className="group cursor-pointer">
+          <div className="overflow-hidden rounded-2xl">
+            <img
+              src={item.img}
+              alt={item.name}
+              className="w-full h-[350px] object-cover group-hover:scale-105 transition duration-300"
+            />
+          </div>
+
+          <div className="mt-3">
+            <p className="font-semibold text-sm">{item.name}</p>
+            <p className="text-xs text-yellow-500">
+              ★★★★★ <span className="text-gray-400">(4.7)</span>
+            </p>
+            <p className="font-bold text-sm mt-1">Rp 2.500</p>
+          </div>
+        </div>
+      ))}
   </div>
 </section>
 
-      {/* ================= TESTIMONI ================= */}
-      <section className="px-16 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Pelanggan Kami Bahagia
-        </h2>
+     {/* ================= TESTIMONI ================= */}
+<section className="px-16 py-20 bg-white">
+  <h2 className="text-3xl font-bold text-center mb-14">
+    Pelanggan Kami Bahagia
+  </h2>
 
-        <div className="grid grid-cols-2 gap-8">
-          {["Berliani", "Putri"].map(name => (
-            <div key={name} className="p-6 border rounded-xl">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-gray-300 rounded-full" />
-                <div>
-                  <p className="font-semibold">{name}</p>
-                  <p className="text-sm text-gray-400">10/10/2022</p>
-                </div>
-              </div>
-              <p className="text-sm mb-2 font-semibold">
-                Krupuk Favorit Keluarga
-              </p>
-              <p className="text-sm text-gray-600">
-                Setiap kali makan keluarga saya selalu minta krupuk ini.
-                Rasanya gurih dan renyah!
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+  <div className="grid grid-cols-3 gap-8">
+
+    {[
+      {
+        name: "Agus | Pedagang Sayur Panggul",
+        date: "12 Januari 2024",
+        title: "Krupuk Favorit Pelanggan",
+        desc: "Krupuknya selalu jadi favorit pembeli saya. Renyah dan gurih, cepat habis tiap hari."
+      },
+      {
+        name: "Sarimi | Pedagang Sayur Sawahan",
+        date: "5 Februari 2024",
+        title: "Kualitas Terjamin",
+        desc: "Rasanya konsisten dan enak. Pelanggan saya sering cari krupuk ini karena beda dari yang lain."
+      },
+      {
+        name: "Budi | Warung Makan Trenggalek",
+        date: "20 Maret 2024",
+        title: "Cocok untuk Semua Menu",
+        desc: "Setiap menu jadi lebih nikmat dengan krupuk ini. Gurihnya pas dan tidak mudah melempem."
+      }
+    ].map((item, i) => (
+
+      <div
+  key={i}
+  className="bg-gray-100 p-2 rounded-2xl"
+>
+  {/* INNER BOX */}
+  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition duration-300">
+
+    {/* NAMA + TANGGAL */}
+    <div className="mb-4">
+      <p className="font-semibold text-sm text-[#1E3A5F]">
+        {item.name}
+      </p>
+      <p className="text-xs text-gray-400 mt-1">
+        {item.date}
+      </p>
+    </div>
+
+    {/* JUDUL */}
+    <p className="text-sm font-semibold mb-2">
+      {item.title}
+    </p>
+
+    {/* DESKRIPSI */}
+    <p className="text-sm text-gray-600 leading-relaxed">
+      {item.desc}
+    </p>
+
+  </div>
+</div>
+
+    ))}
+
+  </div>
+</section>
 
       {/* ================= FOOTER ================= */}
       <footer className="bg-[#0F2A44] text-white px-16 py-16">
         <div className="grid grid-cols-4 gap-10">
-          <div>
-            <h3 className="font-bold text-lg mb-2">Cabaw</h3>
-            <p className="text-sm text-gray-300">
-              Dibuat dengan cinta di Trenggalek
-            </p>
-          </div>
+        <div className="flex items-start gap-3">
+  {/* LOGO */}
+  <div className="w-15 h- rounded-lg overflow-hidden">
+    <img
+      src={CapBawang}
+      alt="Cap Bawang"
+      className="w-full h-full object-cover"
+    />
+  </div>
+
+  {/* TEXT */}
+  <div>
+    <h3 className="font-bold text-lg mb-1">Cabaw</h3>
+    <p className="text-sm text-gray-300">
+      Dibuat dengan cinta di Trenggalek
+    </p>
+  </div>
+</div>
 
           <div>
             <h4 className="font-semibold mb-2">Layanan Pelanggan</h4>
