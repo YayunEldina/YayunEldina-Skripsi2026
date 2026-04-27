@@ -67,6 +67,8 @@ export const Login = () => {
       });
 
       const data = await response.json();
+      console.log(data); // ✅ di sini
+
 
       if (response.ok) {
         // simpan ke localStorage
@@ -87,17 +89,23 @@ export const Login = () => {
           navigate("/member/dashboard");
         }
       } else {
-        // kalau ada error dari backend
-        if (data.field) {
-          // masukkan ke field error masing-masing
-          setErrors((prev) => ({
-            ...prev,
-            [data.field]: data.message,
-          }));
-        } else {
-          // fallback
-          setServerError(data.message || "Terjadi kesalahan");
-        }
+       // kalau ada error dari backend
+if (data.field) {
+  if (data.field === "both") {
+    setErrors({
+      username: "Nama pengguna tidak ditemukan",
+      password: "Kata sandi salah",
+    });
+  } else {
+    setErrors((prev) => ({
+      ...prev,
+      [data.field]: data.message,
+    }));
+  }
+} else {
+  // fallback
+  setServerError(data.message || "Terjadi kesalahan");
+}
       }
     } catch (error) {
       console.error("Error:", error);

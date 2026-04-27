@@ -41,40 +41,47 @@ class AuthController extends Controller
             'username' => 'required',
             'password' => 'required'
         ]);
-
-        // Cek di tabel Admin
+    
+        // Cari user
         $user = Admin::where('username', $request->username)->first();
         $role = 'admin';
-
-        // Jika tidak ada di Admin → cek Pelanggan
+    
         if (!$user) {
             $user = Pelanggan::where('username', $request->username)->first();
             $role = 'pelanggan';
         }
-
-        // =========================
-        // VALIDASI USERNAME
-        // =========================
-        if (!$user) {
+    
+        // dummy hash (tidak perlu Hash::make terus)
+        $hashedPassword = $user 
+    ? $user->password 
+    : Hash::make('dummy123');
+    
+        $usernameError = !$user;
+        $passwordError = !Hash::check($request->password, $hashedPassword);
+    
+        // HANDLE ERROR
+        if ($usernameError && $passwordError) {
+            return response()->json([
+                'field' => 'both',
+                'message' => 'Nama pengguna dan kata sandi salah'
+            ], 401);
+        }
+    
+        if ($usernameError) {
             return response()->json([
                 'field' => 'username',
                 'message' => 'Nama pengguna tidak ditemukan'
             ], 404);
         }
-
-        // =========================
-        // VALIDASI PASSWORD
-        // =========================
-        if (!Hash::check($request->password, $user->password)) {
+    
+        if ($passwordError) {
             return response()->json([
                 'field' => 'password',
                 'message' => 'Kata sandi salah'
             ], 401);
         }
-
-        // =========================
+    
         // LOGIN BERHASIL
-        // =========================
         return response()->json([
             'message' => 'Login berhasil',
             'role'    => $role,
