@@ -138,19 +138,45 @@ class PerhitunganController extends Controller
         }
 
         // Sorting
-        usort($hasilAkhir, fn($a, $b) => $b['nilai_v'] <=> $a['nilai_v']);
+       // 1. Sorting berdasarkan nilai_v tertinggi
+       usort($hasilAkhir, fn($a, $b) => $b['nilai_v'] <=> $a['nilai_v']);
 
-        foreach ($hasilAkhir as $index => $item) {
-            $hasilAkhir[$index]['rank'] = $index + 1;
-        }
+       // 2. Hitung Total Populasi (N)
+       $totalN = count($hasilAkhir);
 
-        return response()->json([
-            'status' => true,
-            'tahun' => $tahun,
-            'matriks_fuzzy' => array_slice($matriksFuzzy, 0, 50),
-            'matriks_r' => array_slice($matriksR, 0, 50),
-            'hasil_akhir' => $hasilAkhir
-        ]);
+       // 3. Tentukan Batas Kuota Berdasarkan Tabel 3.16
+       $batasP1 = ceil($totalN * 0.1); // 10% Teratas
+       $batasP2 = ceil($totalN * 0.3); // 30% Teratas (10% + 20%)
+       $batasP3 = ceil($totalN * 0.6); // 60% Teratas (30% + 30%)
+
+       foreach ($hasilAkhir as $index => $item) {
+           $rank = $index + 1;
+           $hasilAkhir[$index]['rank'] = $rank;
+
+           // Logika Penentuan Diskon Sesuai Tabel 3.16
+           if ($rank <= $batasP1) {
+               $hasilAkhir[$index]['status_prioritas'] = 'Prioritas Tinggi';
+               $hasilAkhir[$index]['diskon'] = 15;
+           } elseif ($rank <= $batasP2) {
+               $hasilAkhir[$index]['status_prioritas'] = 'Prioritas Sedang';
+               $hasilAkhir[$index]['diskon'] = 10;
+           } elseif ($rank <= $batasP3) {
+               $hasilAkhir[$index]['status_prioritas'] = 'Prioritas Rendah';
+               $hasilAkhir[$index]['diskon'] = 5;
+           } else {
+               $hasilAkhir[$index]['status_prioritas'] = 'Tidak Prioritas';
+               $hasilAkhir[$index]['diskon'] = 0;
+           }
+       }
+
+       return response()->json([
+           'status' => true,
+           'tahun' => $tahun,
+           'total_pelanggan' => $totalN, // Tambahan informasi total N
+           'matriks_fuzzy' => array_slice($matriksFuzzy, 0, 50),
+           'matriks_r' => array_slice($matriksR, 0, 50),
+           'hasil_akhir' => $hasilAkhir
+       ]);
     }
 
     // --- HELPER KONVERSI ---

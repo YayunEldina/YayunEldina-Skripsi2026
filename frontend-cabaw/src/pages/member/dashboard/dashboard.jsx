@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Gorok from "../../../assets/krupuk_gorok.png";
 import Ikan from "../../../assets/krupuk_ikan.png";
 import Jari from "../../../assets/krupuk_jari.png";
@@ -13,6 +13,38 @@ import NavbarMember from "./navbar_member";
 
 
 export default function MemberDashboard() {
+  const [diskonPersen, setDiskonPersen] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkDiscount = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        if (storedUser && storedUser.nama_pelanggan) {
+          // Mengambil data perhitungan terbaru (Tahun 2025)
+          const response = await fetch(`http://127.0.0.1:8000/api/proses-perhitungan?tahun=2025`);
+          const result = await response.json();
+          
+          // Mencari data user login di hasil perhitungan SPK
+          const dataSPK = result.hasil_akhir.find((item) => 
+            storedUser.nama_pelanggan.toLowerCase() === item.nama.toLowerCase()
+          );
+
+          if (dataSPK) {
+            // Mengambil nilai diskon yang sudah dihitung backend berdasarkan kuota
+            setDiskonPersen(dataSPK.diskon);
+          }
+        }
+      } catch (error) {
+        console.error("Gagal sinkronisasi diskon dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkDiscount();
+  }, []);
+
   const bestSeller = [
     { name: "Krupuk Gorok", img: Gorok },
     { name: "Krupuk Ikan", img: Ikan },
@@ -36,6 +68,36 @@ export default function MemberDashboard() {
     <main className="bg-white text-gray-900 min-h-screen">
       {/* NAVBAR */}
       <NavbarMember />
+
+     {/* ================= SECTION DISKON (SAMA DENGAN PEMESANAN) ================= */}
+<section className="px-16 pt-32">
+  <h2 className="text-3xl font-bold mb-10">
+    Diskon Anda
+  </h2>
+  {loading ? (
+    <div className="h-24 w-64 bg-gray-100 animate-pulse rounded-2xl"></div>
+  ) : diskonPersen > 0 ? (
+    /* TAMBAHKAN w-fit DI BAWAH INI */
+    <div className="bg-[#EFFFF6] border border-[#D1FADF] rounded-2xl p-6 shadow-sm w-fit">
+      <div className="space-y-1">
+        <p className="text-green-700 font-bold text-sm tracking-wider">REWARD LOYALITAS SPK</p>
+        <h1 className="text-4xl font-black text-[#039855] flex items-baseline gap-1">
+          {diskonPersen}% <span className="text-2xl uppercase">Off</span>
+        </h1>
+        <p className="text-[#039855] text-sm italic font-medium whitespace-nowrap">
+          Diskon otomatis berdasarkan peringkat Anda di tahun 2025
+        </p>
+      </div>
+    </div>
+  ) : (
+    /* TAMBAHKAN w-fit JUGA DI SINI AGAR KONSISTEN */
+    <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 w-fit">
+      <p className="text-gray-500 text-sm italic">
+        Belum ada diskon khusus. Tingkatkan transaksi untuk memperbaiki peringkat tahun depan.
+      </p>
+    </div>
+  )}
+</section>
 
      {/* ================= PRODUK TERLARIS ================= */}
 <section className="px-16 py-20">
