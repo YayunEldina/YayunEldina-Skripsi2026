@@ -7,6 +7,7 @@ use App\Models\Transaksi;
 use App\Models\Pelanggan;
 use App\Models\DetailTransaksi;
 use App\Models\Produk;
+use App\Models\Alternatif; // Tambahkan import Model Alternatif
 use Illuminate\Support\Facades\DB;
 
 class TransaksiController extends Controller
@@ -56,7 +57,28 @@ class TransaksiController extends Controller
                     ]
                 );
 
-                // 2. Simpan Transaksi Utama
+                // 2. LOGIKA SINKRONISASI KE TABEL ALTERNATIF
+                // Cek apakah pelanggan ini sudah terdaftar sebagai alternatif SPK
+                $exists = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)->exists();
+                
+                if (!$exists) {
+                    // Ambil kode terakhir untuk menentukan nomor urut (A1, A2, dst)
+                    $lastAlt = Alternatif::orderByRaw('LENGTH(kode_alternatif) DESC')
+                                ->orderBy('kode_alternatif', 'desc')
+                                ->first();
+                                
+                    $lastNum = $lastAlt ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif)) : 0;
+                    $newKode = "A" . ($lastNum + 1);
+
+                    Alternatif::create([
+                        'id_pelanggan'    => $pelanggan->id_pelanggan,
+                        'nama_alternatif' => $pelanggan->nama_pelanggan,
+                        'kode_alternatif' => $newKode,
+                        'pedagang'        => $request->pedagang ?? 'Lainnya'
+                    ]);
+                }
+
+                // 3. Simpan Transaksi Utama
                 $transaksi = Transaksi::create([
                     'id_pelanggan' => $pelanggan->id_pelanggan, 
                     'tanggal' => $request->tanggal,
@@ -66,7 +88,7 @@ class TransaksiController extends Controller
                     'pedagang' => $request->pedagang 
                 ]);
 
-                // 3. Simpan Detail Transaksi
+                // 4. Simpan Detail Transaksi
                 $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
 
                 foreach ($request->items as $item) {
@@ -81,7 +103,7 @@ class TransaksiController extends Controller
                 }
 
                 return response()->json([
-                    'message' => 'Transaksi berhasil disimpan!',
+                    'message' => 'Transaksi berhasil disimpan dan disinkronkan ke Alternatif!',
                     'data' => $transaksi->load('pelanggan')
                 ], 201);
             });
@@ -91,18 +113,16 @@ class TransaksiController extends Controller
     }
 
     /**
-     * Menampilkan detail satu transaksi untuk diedit (Read single)
+     * Menampilkan detail satu transaksi untuk diedit
      */
     public function show($id)
     {
-        // detailTransaksi sesuai dengan nama function di model Transaksi
         $transaksi = Transaksi::with(['pelanggan', 'detailTransaksi.produk'])->find($id);
         
         if (!$transaksi) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
         }
     
-        // Mengubah ke array agar memicu penamaan snake_case (detail_transaksi) untuk Frontend
         $data = $transaksi->toArray();
 
         return response()->json([
@@ -133,6 +153,11 @@ class TransaksiController extends Controller
                         'nama_pelanggan' => $request->nama_pelanggan,
                         'jenis_kelamin' => $request->jenis_kelamin
                     ]);
+
+                    // Update juga nama di tabel alternatif agar sinkron
+                    Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)->update([
+                        'nama_alternatif' => $request->nama_pelanggan
+                    ]);
                 }
 
                 // 2. Update data Transaksi Utama
@@ -144,7 +169,7 @@ class TransaksiController extends Controller
                     'pedagang' => $request->pedagang
                 ]);
 
-                // 3. Update Detail Transaksi (Hapus lama, simpan baru)
+                // 3. Update Detail Transaksi
                 DetailTransaksi::where('id_transaksi', $id)->delete();
                 
                 $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
@@ -161,7 +186,7 @@ class TransaksiController extends Controller
                 }
 
                 return response()->json([
-                    'message' => 'Data berhasil diperbarui! ✅',
+                    'message' => 'Data transaksi dan alternatif berhasil diperbarui!',
                     'status' => 'success'
                 ], 200);
             });
@@ -177,7 +202,6 @@ class TransaksiController extends Controller
     {
         $transaksi = Transaksi::find($id);
         if ($transaksi) {
-            // Karena relasi menggunakan ON DELETE CASCADE (opsional) atau manual hapus detail:
             DetailTransaksi::where('id_transaksi', $id)->delete();
             $transaksi->delete(); 
             
