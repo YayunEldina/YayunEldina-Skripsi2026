@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FiSearch, FiFilter, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
-import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 
 import tambahIcon from "../../../assets/tambah.svg";
@@ -93,11 +92,14 @@ const TransaksiPenjualan = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <SidebarNavigationSection />
+    <div className="min-h-screen bg-white">
 
-      <div className="flex-1 ml-[280px] pt-[80px]">
-        <NavbarAdmin />
+    {/* Navbar */}
+    <NavbarAdmin />
+
+    {/* Content (karena navbar fixed) */}
+    <div className="pt-16">
+
         
         {/* Search & Filter Section */}
         <div className="flex items-center justify-start px-8 py-4 bg-white gap-6 mt-4">

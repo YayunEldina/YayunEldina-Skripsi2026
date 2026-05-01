@@ -28,14 +28,13 @@ const Ranking = () => {
 
   return (
     <div className="flex min-h-screen bg-white">
-      <SidebarNavigationSection />
 
-      <div className="flex-1 ml-[280px] pt-[50px]">
-        <NavbarAdmin />
+    <div className="flex-1">
+      <NavbarAdmin />
 
-        <div className="px-6 pt-4">
-          <TampilanElemen />
-        </div>
+      <div className="pt-[70px] px-0">
+        <TampilanElemen />
+      </div>
 
         <div className="px-6 mt-6">
           <button className="bg-[#1E3A5F] text-white px-6 py-2 rounded-full text-sm font-medium">

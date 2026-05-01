@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 import { FiSearch, FiFilter } from "react-icons/fi";
 
@@ -46,14 +45,13 @@ const Alternatif = () => {
   }, [searchTerm, fetchAlternatif]);
 
   return (
-    <div className="flex min-h-screen bg-white">
-      {/* SIDEBAR */}
-      <SidebarNavigationSection />
+    <div className="min-h-screen bg-white">
 
-      {/* CONTENT */}
-      <div className="flex-1 ml-[280px] pt-[50px]">
-        {/* NAVBAR */}
-        <NavbarAdmin />
+    {/* NAVBAR */}
+    <NavbarAdmin />
+
+    {/* CONTENT (karena navbar fixed) */}
+    <div className="pt-16">
 
         {/* --- BAGIAN TAMPILAN ELEMEN --- */}
         <div className="flex items-center justify-start px-8 py-9 bg-white gap-6">

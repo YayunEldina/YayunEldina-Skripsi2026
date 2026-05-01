@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import SidebarNavigationSection from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 import TampilanElemen from "../dashboard/TampilanElemen";
 
@@ -41,9 +40,8 @@ const Kriteria = () => {
 
   return (
     <div className="flex min-h-screen bg-white">
-      <SidebarNavigationSection />
 
-      <div className="flex-1 ml-[280px]">
+      <div className="flex-1">
         <NavbarAdmin />
 
         <div className="pt-[70px] px-0">

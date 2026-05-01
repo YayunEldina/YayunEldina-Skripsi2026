@@ -9,18 +9,16 @@ import TampilanElemen from "./TampilanElemen";
 export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Sidebar - Tetap di kiri */}
-      <SidebarNavigationSection />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col ml-[280px]">
+      <div className="flex-1 flex flex-col">
         {/* Navbar - Berada di paling atas content */}
         <NavbarAdmin />
 
         {/* 1. Tambahkan pembungkus pt-16 agar tidak tertutup Navbar Fixed */}
         <div className="pt-16"> 
           <TampilanElemen />
-        </div> {/* <--- INI TUTUPNYA YANG TADI HILANG */}
+        </div> 
 
         {/* 2. Hapus pt-28 karena sudah ada pt-16 di atas */}
         <main className="p-8 space-y-8"> 
