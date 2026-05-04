@@ -1,7 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import SidebarNavigation from "../dashboard/sidebarnavigation";
 import NavbarAdmin from "../dashboard/navbar_admin";
 
 // IMPORT GAMBAR
@@ -20,7 +19,6 @@ const TambahTransaksiPenjualan = () => {
   const navigate = useNavigate();
 
   const [activeFilter, setActiveFilter] = useState("Semua");
-
   const [namaPelanggan, setNamaPelanggan] = useState("");
   const [jenisKelamin, setJenisKelamin] = useState("");
   const [tanggal, setTanggal] = useState("");
@@ -30,6 +28,24 @@ const TambahTransaksiPenjualan = () => {
   const [selectedKerupuk, setSelectedKerupuk] = useState([]);
   const [jumlah, setJumlah] = useState({});
   const [harga] = useState("2.500");
+  const [diskon, setDiskon] = useState(0);
+  const [prioritas, setPrioritas] = useState("-");
+  const [alternatifList, setAlternatifList] = useState([]);
+const [selectedAlternatif, setSelectedAlternatif] = useState(null);
+const normalize = (val) => (val || "").toString().toLowerCase().trim();
+  
+  // Tambahkan state loading di sini
+  const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
+
+  useEffect(() => {
+    axios.get("http://127.0.0.1:8000/api/alternatif/list")
+      .then(res => {
+        setAlternatifList(res.data);
+      })
+      .catch(() => {
+        console.log("Gagal ambil alternatif");
+      });
+  }, []);
 
   const allProducts = [
     { name: "Kotak", img: Kotak, kategori: "Gurih" },
@@ -44,11 +60,50 @@ const TambahTransaksiPenjualan = () => {
     { name: "Keong", img: Keong, kategori: "Gurih" },
   ];
 
+  useEffect(() => {
+    if (!namaPelanggan || !pedagang) {
+      setDiskon(0);
+      setPrioritas("-");
+      return;
+    }
+  
+    setIsLoadingDiskon(true);
+  
+    const delay = setTimeout(() => {
+      axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
+        params: { tahun: new Date().getFullYear() - 1 }
+      })
+      .then(res => {
+        const data = res.data;
+  
+        const found = data.find(item => 
+          normalize(item.nama) === normalize(namaPelanggan) &&
+          normalize(item.pedagang) === normalize(pedagang)
+        );
+  
+        if (found) {
+          setDiskon(found.diskon);
+          setPrioritas(found.prioritas);
+        } else {
+          setDiskon(0);
+          setPrioritas("Pelanggan Baru");
+        }
+      })
+      .catch(() => {
+        setDiskon(0);
+        setPrioritas("Error");
+      })
+      .finally(() => {
+        setIsLoadingDiskon(false);
+      });
+  
+    }, 500);
+  
+    return () => clearTimeout(delay);
+  }, [namaPelanggan, pedagang]);
+
   const totalPembelian = useMemo(() => {
-    return Object.values(jumlah).reduce(
-      (acc, val) => acc + (parseInt(val) || 0),
-      0
-    );
+    return Object.values(jumlah).reduce((acc, val) => acc + (parseInt(val) || 0), 0);
   }, [jumlah]);
 
   const totalHarga = useMemo(() => {
@@ -56,19 +111,26 @@ const TambahTransaksiPenjualan = () => {
     return totalPembelian * hargaNumber;
   }, [totalPembelian, harga]);
 
+  const totalSetelahDiskon = useMemo(() => {
+    return totalHarga - (totalHarga * diskon) / 100;
+  }, [totalHarga, diskon]);
+
   const handleTambahProduk = (produk) => {
-    if (!selectedKerupuk.includes(produk)) {
+    const existing = selectedKerupuk.find((p) => p.name === produk.name);
+    if (!existing) {
       setSelectedKerupuk([...selectedKerupuk, produk]);
-      setJumlah({ ...jumlah, [produk]: 1 });
+      setJumlah({ ...jumlah, [produk.name]: 1 });
     } else {
-      setJumlah({
-        ...jumlah,
-        [produk]: jumlah[produk] + 1,
-      });
+      setJumlah({ ...jumlah, [produk.name]: (jumlah[produk.name] || 0) + 1 });
     }
   };
 
   const handleSimpan = async () => {
+    if (!namaPelanggan || !pedagang || selectedKerupuk.length === 0) {
+      alert("Mohon lengkapi data pelanggan dan pesanan");
+      return;
+    }
+
     const payload = {
       nama_pelanggan: namaPelanggan,
       jenis_kelamin: jenisKelamin,
@@ -76,11 +138,11 @@ const TambahTransaksiPenjualan = () => {
       tempat_transaksi: tempatTransaksi,
       pedagang,
       total_pembelian: totalPembelian,
-      total_harga: totalHarga,
+      total_harga: totalHarga, // ✅ BENAR
       harga_per_pcs: 2500,
       items: selectedKerupuk.map((item) => ({
-        nama: item,
-        jumlah: jumlah[item],
+        nama: item.name,
+        jumlah: jumlah[item.name],
       })),
     };
 
@@ -97,240 +159,160 @@ const TambahTransaksiPenjualan = () => {
     <div className="bg-white min-h-screen">
       <div className="pt-[30px]">
         <NavbarAdmin />
-
         <div className="p-8">
           <div className="grid grid-cols-3 gap-6">
-
-            {/* ================= LEFT ================= */}
+            
+            {/* LEFT SIDE: PRODUCT LIST */}
             <div className="col-span-2 bg-white rounded-2xl p-6 shadow-sm">
-
-              {/* 🔥 HEADER DIUBAH JADI ABU-ABU */}
               <div className="bg-gray-300 text-gray-800 px-5 py-3 rounded-xl mb-6 font-semibold">
                 Daftar Krupuk Cap Bawang
               </div>
-
-              {/* 🔥 FILTER BUTTON (OUTLINE ONLY) */}
               <div className="flex gap-3 mb-6">
                 {["Semua", "Gurih", "Pedas", "Manis"].map((tag) => (
                   <button
                     key={tag}
                     onClick={() => setActiveFilter(tag)}
-                    className={`px-4 py-2 rounded-full text-sm border transition bg-white text-black
-                      ${
-                        activeFilter === tag
-                          ? "border-[#1E3A5F]"
-                          : "border-gray-300"
-                      }`}
+                    className={`px-4 py-2 rounded-full text-sm border transition bg-white text-black ${
+                        activeFilter === tag ? "border-[#1E3A5F]" : "border-gray-300"
+                    }`}
                   >
                     {tag}
                   </button>
                 ))}
               </div>
 
-              {/* PRODUK */}
               <div className="grid grid-cols-4 gap-5">
                 {allProducts
-                  .filter((item) => {
-                    if (activeFilter === "Semua") return true;
-                    return item.kategori === activeFilter;
-                  })
+                  .filter((item) => activeFilter === "Semua" || item.kategori === activeFilter)
                   .map((item, i) => (
-                    <div
-                      key={i}
-                      onClick={() => handleTambahProduk(item.name)}
-                      className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition"
-                    >
-                      <img
-                        src={item.img}
-                        className="w-full h-[120px] object-cover rounded-lg"
-                      />
-                      <p className="text-sm font-semibold mt-2">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-gray-500">Rp 2.500</p>
+                    <div key={i} onClick={() => handleTambahProduk(item)} className="bg-white rounded-xl p-3 cursor-pointer hover:shadow-md transition">
+                      <img src={item.img} className="w-full h-[120px] object-cover rounded-lg" alt={item.name} />
+                      <p className="text-sm font-semibold mt-2">{item.name}</p>
+                      <p className="text-xs text-gray-500">Rp 2.500 / bungkus</p>
                     </div>
                   ))}
               </div>
             </div>
 
-            {/* ================= RIGHT ================= */}
+            {/* RIGHT SIDE: FORM & CART */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-
               <div className="bg-[#1E3A5F] text-white px-5 py-3 rounded-xl mb-6 font-semibold">
                 Tambah Transaksi Penjualan
               </div>
               <div className="space-y-4 mb-4">
+                <div className="flex items-center gap-4">
+                  <label className="w-44 text-base font-medium text-gray-500">Nama Pelanggan</label>
+                  <select
+  value={selectedAlternatif?.id_alternatif || ""}
+  onChange={(e) => {
+    const selected = alternatifList.find(
+      a => a.id_alternatif == e.target.value
+    );
 
-{/* Nama Pelanggan */}
-<div className="flex items-center gap-4">
-  <label className="w-44 text-base font-medium text-gray-500">
-    Nama Pelanggan
-  </label>
-  <input
-    type="text"
-    value={namaPelanggan}
-    onChange={(e) => setNamaPelanggan(e.target.value)}
-    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
-    placeholder="Masukkan nama pelanggan"
-  />
-</div>
+    setSelectedAlternatif(selected);
+    setNamaPelanggan(selected?.nama_alternatif || "");
+    setPedagang(selected?.pedagang || "");
+  }}
+  className="flex-1 border rounded-lg px-3 py-2"
+>
+  <option value="">Pilih Pelanggan</option>
+  {alternatifList.map((alt) => (
+    <option key={alt.id_alternatif} value={alt.id_alternatif}>
+      {alt.nama_alternatif} - {alt.pedagang}
+    </option>
+  ))}
+</select>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="w-44 text-base font-medium text-gray-500">Jenis Kelamin</label>
+                  <select value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700">
+                    <option value="">Pilih jenis kelamin</option>
+                    <option>Laki-laki</option>
+                    <option>Perempuan</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="w-44 text-base font-medium text-gray-500">Tanggal</label>
+                  <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="w-44 text-base font-medium text-gray-500">Tempat Transaksi</label>
+                  <input type="text" value={tempatTransaksi} onChange={(e) => setTempatTransaksi(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" placeholder="Masukkan tempat transaksi" />
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="w-44 text-base font-medium text-gray-500">Pedagang</label>
+                  <input
+  type="text"
+  value={pedagang}
+  readOnly
+  className="flex-1 border rounded-lg px-3 py-2 bg-gray-100"
+/>
+                </div>
+              </div>
 
-{/* Jenis Kelamin */}
-<div className="flex items-center gap-4">
-  <label className="w-44 text-base font-medium text-gray-500">
-    Jenis Kelamin
-  </label>
-  <select
-    value={jenisKelamin}
-    onChange={(e) => setJenisKelamin(e.target.value)}
-    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
-  >
-    <option value="">Pilih jenis kelamin</option>
-    <option>Laki-laki</option>
-    <option>Perempuan</option>
-  </select>
-</div>
-
-{/* Tanggal */}
-<div className="flex items-center gap-4">
-  <label className="w-44 text-base font-medium text-gray-500">
-    Tanggal
-  </label>
-  <input
-    type="date"
-    value={tanggal}
-    onChange={(e) => setTanggal(e.target.value)}
-    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
-  />
-</div>
-
-{/* Tempat Transaksi */}
-<div className="flex items-center gap-4">
-  <label className="w-44 text-base font-medium text-gray-500">
-    Tempat Transaksi
-  </label>
-  <input
-    type="text"
-    value={tempatTransaksi}
-    onChange={(e) => setTempatTransaksi(e.target.value)}
-    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
-    placeholder="Masukkan tempat transaksi"
-  />
-</div>
-
-{/* Pedagang */}
-<div className="flex items-center gap-4">
-  <label className="w-44 text-base font-medium text-gray-500">
-    Pedagang
-  </label>
-  <input
-    type="text"
-    value={pedagang}
-    onChange={(e) => setPedagang(e.target.value)}
-    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
-    placeholder="Nama pedagang"
-  />
-</div>
-
-</div>
-              {/* KERANJANG */}
+              {/* DAFTAR PESANAN */}
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="font-semibold mb-3">Daftar Pesanan</h3>
-
                 <div className="space-y-2 max-h-[200px] overflow-y-auto">
                   {selectedKerupuk.map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg"
-                    >
-                      <span>{item}</span>
-
+                    <div key={i} className="flex items-center justify-between bg-gray-100 p-3 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <img src={item.img} className="w-14 h-14 object-contain bg-white rounded-lg p-1" alt={item.name} />
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
+                          <p className="text-sm text-gray-500 font-medium">Rp2.500</p>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
-
-  {/* MINUS */}
-  <button
-    onClick={() =>
-      setJumlah({
-        ...jumlah,
-        [item]: Math.max(1, jumlah[item] - 1),
-      })
-    }
-    className="px-2 bg-gray-200 rounded"
-  >
-    -
-  </button>
-
-  {/* INPUT (BISA DIKETIK) */}
-  <input
-    type="number"
-    min="1"
-    value={jumlah[item]}
-    onChange={(e) =>
-      setJumlah({
-        ...jumlah,
-        [item]: parseInt(e.target.value) || 1,
-      })
-    }
-    className="w-12 text-center text-sm border border-gray-300 rounded"
-  />
-
-  {/* PLUS */}
-  <button
-    onClick={() =>
-      setJumlah({
-        ...jumlah,
-        [item]: (jumlah[item] || 0) + 1,
-      })
-    }
-    className="px-2 bg-gray-200 rounded"
-  >
-    +
-  </button>
-
-</div>
+                        <button onClick={() => {
+                            const updated = { ...jumlah };
+                            delete updated[item.name];
+                            setJumlah(updated);
+                            setSelectedKerupuk(selectedKerupuk.filter((k) => k.name !== item.name));
+                        }} className="bg-red-400 text-white px-2 py-1 rounded-md">🗑</button>
+                        <button onClick={() => setJumlah({ ...jumlah, [item.name]: Math.max(1, (jumlah[item.name] || 1) - 1) })} className="bg-yellow-400 px-3 py-1 rounded-md">-</button>
+                        <input type="text" value={jumlah[item.name] ?? ""} readOnly className="w-10 text-center bg-transparent font-bold" />
+                        <button onClick={() => setJumlah({ ...jumlah, [item.name]: (jumlah[item.name] || 1) + 1 })} className="bg-yellow-400 px-3 py-1 rounded-md">+</button>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-6 flex flex-col items-end text-right">
+                  <p className="text-base text-gray-600">Total Item: <span className="font-semibold text-gray-800">{totalPembelian}</span></p>
+                  <p className="text-2xl font-bold text-[#1E3A5F] mt-1">Rp {totalHarga.toLocaleString("id-ID")}</p>
 
-  {/* TOTAL ITEM */}
-  <p className="text-base text-gray-600">
-    Total Item:{" "}
-    <span className="font-semibold text-gray-800">
-      {totalPembelian}
-    </span>
-  </p>
+                  <div className="mt-3">
+                    {/* IMPLEMENTASI LOADING UI DI SINI */}
+                    <span className={`px-2 py-1 rounded text-sm font-medium ${
+                        isLoadingDiskon ? "bg-gray-100 text-gray-400 animate-pulse" : 
+                        prioritas === "Prioritas Tinggi" ? "bg-green-100 text-green-700" :
+                        prioritas === "Prioritas Sedang" ? "bg-yellow-100 text-yellow-700" :
+                        prioritas === "Prioritas Rendah" ? "bg-blue-100 text-blue-700" :
+                        prioritas === "Pelanggan Baru" ? "bg-gray-200 text-gray-600" : "bg-gray-100 text-gray-500"
+                    }`}>
+                      {isLoadingDiskon ? "Mengecek status..." : prioritas}
+                    </span>
 
-  {/* TOTAL HARGA (BESAR) */}
-  <p className="text-2xl font-bold text-[#1E3A5F] mt-1">
-    Rp {totalHarga.toLocaleString("id-ID")}
-  </p>
-
-</div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Diskon: <span className="text-green-600 font-bold">{diskon}%</span>
+                    </p>
+                    <p className="text-xl font-bold text-green-600 mt-1">
+                      Total Bayar: Rp {totalSetelahDiskon.toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                </div>
 
                 <div className="flex gap-4 mt-8 w-full">
-
-  {/* BATAL - 30% */}
-  <button
-    onClick={() => navigate("/admin/transaksi")}
-    className="w-3/10 flex-[3] px-6 py-3 rounded-xl border border-gray-300 text-gray-500 hover:bg-gray-50 transition-all font-medium"
-  >
-    Batal
-  </button>
-
-  {/* SIMPAN - 70% */}
-  <button
-    onClick={handleSimpan}
-    className="w-7/10 flex-[7] px-6 py-3 rounded-xl bg-[#1E3A5F] text-white font-semibold hover:opacity-90 shadow-lg shadow-blue-900/10 transition-all"
-  >
-    Simpan Transaksi
-  </button>
-
-</div>
+                  <button onClick={() => navigate("/admin/transaksi")} className="flex-[3] px-6 py-3 rounded-xl border border-gray-300 text-gray-500 hover:bg-gray-50 transition-all font-medium">
+                    Batal
+                  </button>
+                  <button onClick={handleSimpan} className="flex-[7] px-6 py-3 rounded-xl bg-[#1E3A5F] text-white font-semibold hover:opacity-90 shadow-lg transition-all">
+                    Simpan Transaksi
+                  </button>
+                </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>

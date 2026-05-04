@@ -4,13 +4,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 // Logo
 import CapBawang from "../../../assets/capbawang.jpeg";
 
-// Icons Sidebar
+// Icons Menu
 import DashboardIcon from "../../../assets/dashboard.svg";
 import TransaksiIcon from "../../../assets/transaksi.svg";
 import AlternatifIcon from "../../../assets/alternatif.svg";
 import KriteriaIcon from "../../../assets/kriteria.svg";
 import PerhitunganIcon from "../../../assets/perhitungan.svg";
 import RankingIcon from "../../../assets/ranking.svg";
+
+// Logout Icon
+import LogoutIcon from "../../../assets/logout.svg";
 
 const NavbarAdmin = () => {
   const navigate = useNavigate();
@@ -20,8 +23,6 @@ const NavbarAdmin = () => {
     name: "Admin",
     email: "admin@mail.com",
   });
-
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -43,127 +44,107 @@ const NavbarAdmin = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-white z-50">
-
-      {/* 🔹 CONTAINER AGAR TIDAK TERLALU LEBAR */}
-      <div className="w-full px-8 h-16 flex items-center justify-between px-4">
+    <header className="fixed top-0 left-0 w-full bg-white z-50 border-b border-gray-100">
+      <div className="w-full px-8 h-16 flex items-center justify-between">
 
         {/* 🔹 KIRI - LOGO */}
         <div className="flex items-center gap-3">
-          <img
-            src={CapBawang}
-            alt="logo"
-            className="w-6 h-10"
-          />
+          <img src={CapBawang} alt="logo" className="w-6 h-10" />
           <div>
             <h2 className="font-bold text-sm leading-tight">Cabaw</h2>
-            <p className="text-sm text-gray-500">
-              Krupuke Pak Ugik
+            <p className="text-xs text-gray-500">
+              Krupuk Pak Ugik
             </p>
           </div>
         </div>
 
-        {/* 🔹 TENGAH - MENU (BACKGROUND ABU) */}
+        {/* 🔹 TENGAH - MENU */}
         <nav className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
 
-  <NavItem
-    icon={DashboardIcon}
-    label="Dashboard"
-    active={location.pathname === "/admin/dashboard"}
-    onClick={() => navigate("/admin/dashboard")}
-  />
+          <NavItem
+            icon={DashboardIcon}
+            label="Dashboard"
+            active={location.pathname === "/admin/dashboard"}
+            onClick={() => navigate("/admin/dashboard")}
+          />
 
-  <NavItem
-    icon={TransaksiIcon}
-    label="Transaksi"
-    active={location.pathname === "/admin/transaksi"}
-    onClick={() => navigate("/admin/transaksi")}
-  />
+          <NavItem
+            icon={TransaksiIcon}
+            label="Transaksi"
+            active={location.pathname === "/admin/transaksi"}
+            onClick={() => navigate("/admin/transaksi")}
+          />
 
-  <NavItem
-    icon={AlternatifIcon}
-    label="Alternatif"
-    active={location.pathname === "/admin/alternatif"}
-    onClick={() => navigate("/admin/alternatif")}
-  />
+          <NavItem
+            icon={AlternatifIcon}
+            label="Alternatif"
+            active={location.pathname === "/admin/alternatif"}
+            onClick={() => navigate("/admin/alternatif")}
+          />
 
-  <NavItem
-    icon={KriteriaIcon}
-    label="Kriteria"
-    active={location.pathname === "/admin/kriteria"}
-    onClick={() => navigate("/admin/kriteria")}
-  />
+          <NavItem
+            icon={KriteriaIcon}
+            label="Kriteria"
+            active={location.pathname === "/admin/kriteria"}
+            onClick={() => navigate("/admin/kriteria")}
+          />
 
-  <NavItem
-    icon={PerhitunganIcon}
-    label="Perhitungan"
-    active={location.pathname === "/admin/perhitungan"}
-    onClick={() => navigate("/admin/perhitungan")}
-  />
+          <NavItem
+            icon={PerhitunganIcon}
+            label="Perhitungan"
+            active={location.pathname === "/admin/perhitungan"}
+            onClick={() => navigate("/admin/perhitungan")}
+          />
 
-  <NavItem
-    icon={RankingIcon}
-    label="Ranking"
-    active={location.pathname === "/admin/ranking"}
-    onClick={() => navigate("/admin/ranking")}
-  />
+          <NavItem
+            icon={RankingIcon}
+            label="Ranking"
+            active={location.pathname === "/admin/ranking"}
+            onClick={() => navigate("/admin/ranking")}
+          />
 
-</nav>
+        </nav>
 
-        {/* 🔹 KANAN - PROFILE */}
-        <div className="relative flex items-center gap-3">
+        {/* 🔹 KANAN - PROFILE + LOGOUT */}
+        <div className="flex items-center gap-3">
 
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="w-5 h-5 text-gray-500"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7h14c0-3.866-3.134-7-7-7z" />
-  </svg>
-</div>
-          <div className="text-left">
-            <h3 className="text-sm font-bold leading-tight">
+          {/* 🔘 AVATAR */}
+          <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-5 h-5 text-gray-500"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7h14c0-3.866-3.134-7-7-7z" />
+            </svg>
+          </div>
+
+          {/* 🧑 INFO */}
+          <div className="text-left leading-tight">
+            <h3 className="text-sm font-semibold">
               {admin.name}
             </h3>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[11px] text-gray-400">
               {admin.email}
             </p>
           </div>
 
+          {/* 🔴 LOGOUT BULAT */}
           <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="text-gray-400 text-sm"
-          >
-            ▼
-          </button>
+  onClick={handleLogout}
+  className="w-9 h-9 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition"
+>
+  <img src={LogoutIcon} alt="logout" className="w-4 h-4 opacity-70" />
+</button>
 
-          {isDropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0"
-                onClick={() => setIsDropdownOpen(false)}
-              ></div>
-
-              <div className="absolute right-0 top-10 w-36 bg-white rounded-lg shadow-md py-1">
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  Logout
-                </button>
-              </div>
-            </>
-          )}
         </div>
-
       </div>
     </header>
   );
 };
 
-// 🔹 ITEM ICON SAJA (MINIMALIS)
+// 🔹 NAV ITEM
 const NavItem = ({ icon, label, active, onClick }) => {
   return (
     <div
@@ -175,7 +156,6 @@ const NavItem = ({ icon, label, active, onClick }) => {
           : "text-gray-600 hover:bg-gray-200"
       }`}
     >
-      {/* ICON */}
       <img
         src={icon}
         alt={label}
@@ -183,8 +163,6 @@ const NavItem = ({ icon, label, active, onClick }) => {
           active ? "brightness-0" : "opacity-60"
         }`}
       />
-
-      {/* LABEL */}
       <span>{label}</span>
     </div>
   );

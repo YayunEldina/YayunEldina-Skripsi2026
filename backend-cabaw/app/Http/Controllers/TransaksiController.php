@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\DB;
 
 class TransaksiController extends Controller
 {
+     // =========================
+    // ✅ FUNCTION TAMBAHAN
+    // =========================
+    private function normalize($text)
+    {
+        return strtolower(trim(preg_replace('/\s+/', ' ', $text)));
+    }
+
     /**
      * Menampilkan daftar transaksi dengan pagination
      */
@@ -41,25 +49,29 @@ class TransaksiController extends Controller
             'nama_pelanggan' => 'required',
             'tanggal' => 'required|date',
             'items' => 'required|array',
+            'total_pembelian' => 'required',
+            'total_harga' => 'required',
         ]);
-
+    
         try {
             return DB::transaction(function () use ($request) {
-                // 1. Cari atau buat Pelanggan
-                $pelanggan = Pelanggan::firstOrCreate(
-                    ['nama_pelanggan' => $request->nama_pelanggan],
-                    [
-                        'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . rand(10, 99),
-                        'password' => bcrypt('123456'),
-                        'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
-                        'alamat' => '-',
-                        'no_telepon' => '0'
-                    ]
-                );
+    
+                // 1. Cari / buat pelanggan
+                $pelanggan = Pelanggan::firstOrCreate([
+                    'nama_pelanggan' => $request->nama_pelanggan
+                ], [
+                    'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
+                    'password' => bcrypt('123456'),
+                    'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
+                    'alamat' => '-',
+                    'no_telepon' => '0'
+                ]);
 
                 // 2. LOGIKA SINKRONISASI KE TABEL ALTERNATIF
                 // Cek apakah pelanggan ini sudah terdaftar sebagai alternatif SPK
-                $exists = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)->exists();
+                $exists = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
+    ->where('pedagang', strtolower(trim($request->pedagang ?? '-')))
+    ->exists();
                 
                 if (!$exists) {
                     // Ambil kode terakhir untuk menentukan nomor urut (A1, A2, dst)
@@ -74,19 +86,38 @@ class TransaksiController extends Controller
                         'id_pelanggan'    => $pelanggan->id_pelanggan,
                         'nama_alternatif' => $pelanggan->nama_pelanggan,
                         'kode_alternatif' => $newKode,
-                        'pedagang'        => $request->pedagang ?? 'Lainnya'
+                        'pedagang' => strtolower(trim($request->pedagang ?? '-'))
                     ]);
                 }
 
-                // 3. Simpan Transaksi Utama
-                $transaksi = Transaksi::create([
-                    'id_pelanggan' => $pelanggan->id_pelanggan, 
-                    'tanggal' => $request->tanggal,
-                    'total_pembelian' => $request->total_pembelian,
-                    'total_harga' => $request->total_harga,
-                    'tempat_transaksi' => $request->tempat_transaksi,
-                    'pedagang' => $request->pedagang 
-                ]);
+                 // =========================================
+// 🔥 3. AMBIL DISKON DARI RANKING
+// =========================================
+$tahunTransaksi = date('Y', strtotime($request->tanggal));
+$tahunAmbil = $tahunTransaksi - 1;
+
+$dataDiskon = DB::table('hasil_perhitungan')
+    ->where('nama', $this->normalize($request->nama_pelanggan))
+    ->where('pedagang', $this->normalize($request->pedagang ?? '-'))
+    ->where('tahun', $tahunAmbil)
+    ->first();
+
+$diskon = $dataDiskon->diskon ?? 0;
+
+            // =========================================
+            // 3. SIMPAN TRANSAKSI (PAKAI DISKON)
+            // =========================================
+            $transaksi = Transaksi::create([
+                'id_pelanggan' => $pelanggan->id_pelanggan,
+                'nama_pelanggan' => $pelanggan->nama_pelanggan,
+                'tanggal' => $request->tanggal,
+                'total_pembelian' => $request->total_pembelian,
+                'total_harga' => $request->total_harga,
+                'tempat_transaksi' => $request->tempat_transaksi,
+                'pedagang' => strtolower(trim($request->pedagang ?? '-')),
+                'harga_per_pcs' => 2500,
+                'diskon' => $diskon // ✅ MASUK DI SINI
+            ]);
 
                 // 4. Simpan Detail Transaksi
                 $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();

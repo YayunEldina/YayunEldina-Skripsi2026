@@ -16,6 +16,7 @@ Route::post('/import-semua', [ImportController::class, 'importSemua']);
 
 // Alternatif
 Route::get('/alternatifs', [AlternatifController::class, 'index']);
+Route::get('/alternatif/list', [AlternatifController::class, 'getListDropdown']);
 
 // Transaksi
 Route::get('/transaksi', [TransaksiController::class, 'index']);
@@ -33,3 +34,13 @@ Route::delete('/kriteria/{id}', [KriteriaController::class, 'destroy']);
 // Perhitungan & Sinkronisasi
 Route::get('/proses-perhitungan', [PerhitunganController::class, 'hitungFuzzyTopsis']);
 Route::post('/perhitungan/sinkronisasi', [PerhitunganController::class, 'sinkronisasiData']);
+
+// Diskon
+Route::get('/hasil-perhitungan', function (Request $request) {
+    $tahun = $request->query('tahun', date('Y'));
+
+    return DB::table('hasil_perhitungan')
+        ->where('tahun', $tahun)
+        ->orderBy('ranking')
+        ->get();
+});

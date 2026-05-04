@@ -23,24 +23,35 @@ class PerhitunganController extends Controller
         $pelangganDariTransaksi = DB::table('transaksi')
         ->join('pelanggan', 'transaksi.id_pelanggan', '=', 'pelanggan.id_pelanggan')
         ->whereYear('transaksi.tanggal', $tahun)
-        ->select('transaksi.id_pelanggan', 'pelanggan.nama_pelanggan')
-        ->whereNotIn('transaksi.id_pelanggan', function($query) {
-            $query->select('id_pelanggan')->from('alternatifs');
-        })
+        ->select(
+            'transaksi.id_pelanggan',
+            'pelanggan.nama_pelanggan',
+            'transaksi.pedagang'
+        )
         ->distinct()
         ->get();
 
         foreach ($pelangganDariTransaksi as $p) {
-            $lastAlt = Alternatif::orderBy('id_alternatif', 'desc')->first();
-            $lastNum = $lastAlt ? intval(substr($lastAlt->kode_alternatif, 1)) : 0;
-            $newKode = "A" . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
 
-            Alternatif::create([
-                'id_pelanggan'    => $p->id_pelanggan,
-                'nama_alternatif' => $p->nama_pelanggan,
-                'kode_alternatif' => $newKode,
-                'pedagang'        => '-' // WAJIB karena kolom NOT NULL
-            ]);
+            $pedagang = strtolower(trim($p->pedagang));
+        
+            // 🔥 CEK KOMBINASI (INI KUNCINYA)
+            $exists = Alternatif::where('id_pelanggan', $p->id_pelanggan)
+                ->where('pedagang', $pedagang)
+                ->exists();
+        
+            if (!$exists) {
+                $lastAlt = Alternatif::orderBy('id_alternatif', 'desc')->first();
+                $lastNum = $lastAlt ? intval(substr($lastAlt->kode_alternatif, 1)) : 0;
+                $newKode = "A" . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
+        
+                Alternatif::create([
+                    'id_pelanggan'    => $p->id_pelanggan,
+                    'nama_alternatif' => $p->nama_pelanggan,
+                    'kode_alternatif' => $newKode,
+                    'pedagang'        => $pedagang
+                ]);
+            }
         }
 
         // ========================================================
@@ -53,25 +64,28 @@ class PerhitunganController extends Controller
         // 3. AMBIL DATA TRANSAKSI
         // ========================================================
         $allStats = DB::table('transaksi')
-            ->whereYear('tanggal', $tahun)
-            ->select(
-                'id_pelanggan',
-                DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'),
-                DB::raw('COALESCE(SUM(total_harga), 0) as c2'),
-                DB::raw('COUNT(id_transaksi) as c3'),
-                DB::raw('COALESCE(AVG(total_pembelian), 0) as c4')
-            )
-            ->groupBy('id_pelanggan')
-            ->get()
-            ->keyBy('id_pelanggan');
-
+        ->whereYear('tanggal', $tahun)
+        ->select(
+            'id_pelanggan',
+            'pedagang', // 🔥 WAJIB ADA
+            DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'),
+            DB::raw('COALESCE(SUM(total_harga), 0) as c2'),
+            DB::raw('COUNT(id_transaksi) as c3'),
+            DB::raw('COALESCE(AVG(total_pembelian), 0) as c4')
+        )
+        ->groupBy('id_pelanggan', 'pedagang') // 🔥 WAJIB
+        ->get()
+        ->keyBy(function($item){
+            return $item->id_pelanggan . '_' . strtolower(trim($item->pedagang));
+        });
+        
         // ========================================================
         // 4. AMBIL ALTERNATIF SESUAI TAHUN
         // ========================================================
-        $alternatifs = Alternatif::whereIn(
-            'id_pelanggan',
-            $allStats->keys()
-        )->get();
+        $alternatifs = Alternatif::all()->filter(function($alt) use ($allStats){
+            $key = $alt->id_pelanggan . '_' . strtolower(trim($alt->pedagang));
+            return $allStats->has($key);
+        })->values();
 
         // ========================================================
         // 5. UPDATE PENILAIAN KRITERIA
@@ -82,7 +96,8 @@ class PerhitunganController extends Controller
         )->delete();
 
         foreach ($alternatifs as $alt) {
-            $stats = $allStats->get($alt->id_pelanggan);
+            $key = $alt->id_pelanggan . '_' . strtolower(trim($alt->pedagang));
+            $stats = $allStats->get($key);
 
             foreach ($kriteriasByKode as $kode => $k) {
                 $field = strtolower($kode);
@@ -221,6 +236,7 @@ class PerhitunganController extends Controller
 
             $hasilAkhir[] = [
                 'nama' => $alt->nama_alternatif,
+                'pedagang' => $alt->pedagang ?? '-',
                 'kode' => $alt->kode_alternatif,
                 'd_plus' => round($dPlus, 4),
                 'd_min'  => round($dMin, 4),
@@ -257,14 +273,35 @@ class PerhitunganController extends Controller
             }
         }
 
-        return response()->json([
-            'status' => true,
-            'tahun' => $tahun,
-            'total_pelanggan' => $totalN,
-            'hasil_akhir' => $hasilAkhir,
-            'matriks_fuzzy' => $matriksFuzzy,
-            'matriks_r' => $matriksR
-        ]);
+        // 🔥 1. Semua perhitungan selesai
+// (normalisasi, solusi ideal, nilai V, ranking, diskon, dll)
+
+// 🔥 2. SIMPAN KE DATABASE
+DB::table('hasil_perhitungan')->where('tahun', $tahun)->delete();
+
+foreach ($hasilAkhir as $index => $item) {
+    DB::table('hasil_perhitungan')->insert([
+        'nama' => strtolower(trim($item['nama'])),
+        'pedagang' => strtolower(trim($item['pedagang'] ?? '-')),
+        'nilai_v' => $item['nilai_v'],
+        'ranking' => $index + 1,
+        'diskon' => $item['diskon'],
+        'prioritas' => $item['status_prioritas'],
+        'tahun' => $tahun,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+}
+
+// ✅ RETURN FINAL (INI SAJA)
+return response()->json([
+    'status' => true,
+    'tahun' => $tahun,
+    'total_pelanggan' => $totalN,
+    'hasil_akhir' => $hasilAkhir,
+    'matriks_fuzzy' => $matriksFuzzy,
+    'matriks_r' => $matriksR
+]);
     }
 
     // ================= HELPER =================

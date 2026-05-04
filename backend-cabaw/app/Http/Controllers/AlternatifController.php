@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Alternatif;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AlternatifController extends Controller
 {
@@ -52,5 +53,18 @@ class AlternatifController extends Controller
                                 ->get();
 
         return response()->json($alternatif, 200);
+    }
+
+    public function getListDropdown()
+    {
+        $data = Alternatif::select(
+            'id_alternatif',
+            'nama_alternatif',
+            DB::raw('LOWER(TRIM(pedagang)) as pedagang')
+        )
+        ->orderBy('nama_alternatif')
+        ->get();
+    
+        return response()->json($data);
     }
 }

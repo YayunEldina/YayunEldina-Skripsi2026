@@ -47,3 +47,15 @@
 .read-the-docs {
   color: #888;
 }
+
+/* HILANGKAN SPINNER DI CHROME, SAFARI, EDGE */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* HILANGKAN SPINNER DI FIREFOX */
+.no-spinner {
+  -moz-appearance: textfield;
+}
