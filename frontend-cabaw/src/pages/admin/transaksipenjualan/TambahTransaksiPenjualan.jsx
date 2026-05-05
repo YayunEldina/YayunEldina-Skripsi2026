@@ -33,6 +33,7 @@ const TambahTransaksiPenjualan = () => {
   const [alternatifList, setAlternatifList] = useState([]);
 const [selectedAlternatif, setSelectedAlternatif] = useState(null);
 const normalize = (val) => (val || "").toString().toLowerCase().trim();
+const [showDropdown, setShowDropdown] = useState(false);
   
   // Tambahkan state loading di sini
   const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
@@ -171,6 +172,15 @@ console.log("Payload:", payload);
     }
   };
 
+  const keyword = namaPelanggan.toLowerCase();
+
+const filteredAlternatif = alternatifList.filter((item) => {
+  return (
+    (item.nama_alternatif || "").toLowerCase().includes(keyword) ||
+    (item.pedagang || "").toLowerCase().includes(keyword)
+  );
+});
+
   return (
     <div className="bg-white min-h-screen">
       <div className="pt-[30px]">
@@ -216,29 +226,53 @@ console.log("Payload:", payload);
                 Tambah Transaksi Penjualan
               </div>
               <div className="space-y-4 mb-4">
-                <div className="flex items-center gap-4">
-                  <label className="w-44 text-base font-medium text-gray-500">Nama Pelanggan</label>
-                  <select
-  value={selectedAlternatif?.id_alternatif || ""}
-  onChange={(e) => {
-    const selected = alternatifList.find(
-      a => a.id_alternatif == e.target.value
-    );
+              <div className="flex items-center gap-4">
+  <label className="w-44 text-base font-medium text-gray-500">
+    Nama Pelanggan
+  </label>
 
-    setSelectedAlternatif(selected);
-    setNamaPelanggan(selected?.nama_alternatif || "");
-    setPedagang(selected?.pedagang || "");
-  }}
-  className="flex-1 border rounded-lg px-3 py-2"
->
-  <option value="">Pilih Pelanggan</option>
-  {alternatifList.map((alt) => (
-    <option key={alt.id_alternatif} value={alt.id_alternatif}>
-      {alt.nama_alternatif} - {alt.pedagang}
-    </option>
-  ))}
-</select>
-                </div>
+  {/* SEARCH + DROPDOWN */}
+  <div className="flex-1 relative">
+    <input
+      type="text"
+      value={namaPelanggan}
+      onChange={(e) => {
+        setNamaPelanggan(e.target.value);
+        setShowDropdown(true);
+        setSelectedAlternatif(null);
+      }}
+      onFocus={() => setShowDropdown(true)}
+      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+      placeholder="Cari / pilih pelanggan..."
+      className="w-full border rounded-lg px-3 py-2"
+    />
+
+    {showDropdown && (
+      <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+        {alternatifList
+          .filter((alt) =>
+            (alt.nama_alternatif || "")
+              .toLowerCase()
+              .includes(namaPelanggan.toLowerCase())
+          )
+          .map((alt) => (
+            <div
+              key={alt.id_alternatif}
+              onClick={() => {
+                setSelectedAlternatif(alt);
+                setNamaPelanggan(alt.nama_alternatif);
+                setPedagang(alt.pedagang);
+                setShowDropdown(false);
+              }}
+              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+            >
+              {alt.nama_alternatif} - {alt.pedagang}
+            </div>
+          ))}
+      </div>
+    )}
+  </div>
+</div>
                 <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Jenis Kelamin</label>
                   <select value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700">
