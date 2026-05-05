@@ -11,6 +11,7 @@ import AlternatifIcon from "../../../assets/alternatif.svg";
 import KriteriaIcon from "../../../assets/kriteria.svg";
 import PerhitunganIcon from "../../../assets/perhitungan.svg";
 import RankingIcon from "../../../assets/ranking.svg";
+import LaporanIcon from "../../../assets/laporan.svg";
 
 // Logout Icon
 import LogoutIcon from "../../../assets/logout.svg";
@@ -102,6 +103,13 @@ const NavbarAdmin = () => {
             active={location.pathname === "/admin/ranking"}
             onClick={() => navigate("/admin/ranking")}
           />
+
+<NavItem
+  icon={LaporanIcon} // kalau belum ada, pakai RankingIcon dulu
+  label="Laporan Diskon"
+  active={location.pathname === "/admin/laporan-diskon"}
+  onClick={() => navigate("/admin/laporan-diskon")}
+/>
 
         </nav>
 

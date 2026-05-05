@@ -127,7 +127,7 @@ const TransaksiPenjualan = () => {
         {/* Year Filter & Add Button */}
         <div className="flex items-center justify-between px-8 mt-2">
           <div className="flex gap-2">
-            {["2021", "2022", "2023", "2024", "2025"].map((y) => (
+            {["2021", "2022", "2023", "2024", "2025", "2026"].map((y) => (
               <button
                 key={y}
                 onClick={() => { setTahunTerpilih(y); setPage(1); }}

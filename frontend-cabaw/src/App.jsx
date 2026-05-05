@@ -13,6 +13,7 @@ import DashboardMember from "./pages/member/dashboard/dashboard";
 import TambahTransaksiPenjualan from "./pages/admin/transaksipenjualan/TambahTransaksiPenjualan";
 import EditTransaksiPenjualan from "./pages/admin/transaksipenjualan/EditTransaksiPenjualan";
 import LihatTransaksiPenjualan from "./pages/admin/transaksipenjualan/LihatTransaksiPenjualan";
+import LaporanDiskon from "./pages/admin/laporan/LaporanDiskon";
 
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
         <Route path="/admin/ranking" element={<Ranking />} />
         <Route path="/member/dashboard" element={<DashboardMember />} />
         <Route path="/member/pemesanan" element={<Pemesanan />} />
+        <Route path="/admin/laporan-diskon" element={<LaporanDiskon />} />
         
       </Routes>
     </BrowserRouter>

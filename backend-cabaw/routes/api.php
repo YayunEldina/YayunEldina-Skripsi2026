@@ -44,3 +44,4 @@ Route::get('/hasil-perhitungan', function (Request $request) {
         ->orderBy('ranking')
         ->get();
 });
+Route::get('/laporan-diskon', [TransaksiController::class, 'laporanDiskon']);

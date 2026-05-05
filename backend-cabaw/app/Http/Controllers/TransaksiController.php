@@ -240,4 +240,25 @@ $diskon = $dataDiskon->diskon ?? 0;
         }
         return response()->json(['message' => 'Data tidak ditemukan'], 404);
     }
+
+    public function laporanDiskon(Request $request)
+{
+    $tahun = $request->query('tahun', date('Y'));
+
+    $data = DB::table('transaksi')
+        ->select(
+            'nama_pelanggan',
+            'pedagang',
+            DB::raw('COUNT(*) as total_transaksi'),
+            DB::raw('SUM(total_pembelian) as total_pembelian'),
+            DB::raw('SUM(total_harga) as total_harga'),
+            DB::raw('SUM((total_harga * diskon)/100) as total_diskon')
+        )
+        ->whereYear('tanggal', $tahun)
+        ->groupBy('nama_pelanggan', 'pedagang')
+        ->orderByDesc('total_diskon')
+        ->get();
+
+    return response()->json($data);
+}
 }
