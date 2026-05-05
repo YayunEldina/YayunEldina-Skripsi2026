@@ -40,6 +40,10 @@ const normalize = (val) => (val || "").toString().toLowerCase().trim();
   useEffect(() => {
     axios.get("http://127.0.0.1:8000/api/alternatif/list")
       .then(res => {
+
+        console.log("DATA API:", res.data);
+console.log("NAMA DIPILIH:", namaPelanggan);
+console.log("PEDAGANG DIPILIH:", pedagang);
         setAlternatifList(res.data);
       })
       .catch(() => {
@@ -131,6 +135,11 @@ const normalize = (val) => (val || "").toString().toLowerCase().trim();
       return;
     }
 
+    if (diskon === 0 && prioritas !== "Pelanggan Baru") {
+      alert("Diskon belum siap, tunggu sebentar...");
+      return;
+    }
+
     const payload = {
       nama_pelanggan: namaPelanggan,
       jenis_kelamin: jenisKelamin,
@@ -140,11 +149,18 @@ const normalize = (val) => (val || "").toString().toLowerCase().trim();
       total_pembelian: totalPembelian,
       total_harga: totalHarga, // ✅ BENAR
       harga_per_pcs: 2500,
+      diskon: diskon,
       items: selectedKerupuk.map((item) => ({
         nama: item.name,
         jumlah: jumlah[item.name],
       })),
     };
+
+    console.log("=== DEBUG SIMPAN ===");
+console.log("Diskon:", diskon);
+console.log("Prioritas:", prioritas);
+console.log("Loading:", isLoadingDiskon);
+console.log("Payload:", payload);
 
     try {
       await axios.post("http://127.0.0.1:8000/api/transaksi", payload);

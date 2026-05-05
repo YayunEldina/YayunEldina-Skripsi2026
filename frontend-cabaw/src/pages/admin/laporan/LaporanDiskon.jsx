@@ -13,6 +13,7 @@ const LaporanDiskon = () => {
       const res = await axios.get(
         `http://127.0.0.1:8000/api/laporan-diskon?tahun=${tahun}`
       );
+      console.log("DATA API:", res.data); // 🔥 tambah ini
       setData(res.data);
     } catch (err) {
       console.error("Gagal ambil laporan:", err);
@@ -92,13 +93,14 @@ const LaporanDiskon = () => {
                     <td className="px-4 py-3">{item.total_transaksi}</td>
                     <td className="px-4 py-3">{item.total_pembelian}</td>
                     <td className="px-4 py-3">
-                      Rp{" "}
-                      {parseFloat(item.total_harga).toLocaleString("id-ID")}
-                    </td>
-                    <td className="px-4 py-3 text-green-600 font-semibold">
-                      Rp{" "}
-                      {parseFloat(item.total_diskon).toLocaleString("id-ID")}
-                    </td>
+  Rp{" "}
+  {parseFloat(item.total_harga || 0).toLocaleString("id-ID")}
+</td>
+
+<td className="px-4 py-3 text-green-600 font-semibold">
+  Rp{" "}
+  {parseFloat(item.total_diskon || 0).toLocaleString("id-ID")}
+</td>
                   </tr>
                 ))
               ) : (

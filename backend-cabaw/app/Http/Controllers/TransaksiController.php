@@ -44,104 +44,119 @@ class TransaksiController extends Controller
      * Menyimpan transaksi baru (Create)
      */
     public function store(Request $request)
-    {
-        $request->validate([
-            'nama_pelanggan' => 'required',
-            'tanggal' => 'required|date',
-            'items' => 'required|array',
-            'total_pembelian' => 'required',
-            'total_harga' => 'required',
-        ]);
-    
-        try {
-            return DB::transaction(function () use ($request) {
-    
-                // 1. Cari / buat pelanggan
-                $pelanggan = Pelanggan::firstOrCreate([
-                    'nama_pelanggan' => $request->nama_pelanggan
-                ], [
+{
+    $request->validate([
+        'nama_pelanggan' => 'required',
+        'tanggal' => 'required|date',
+        'items' => 'required|array',
+        'total_pembelian' => 'required',
+        'total_harga' => 'required',
+    ]);
+
+    try {
+        return DB::transaction(function () use ($request) {
+
+            // =========================
+            // 1. PELANGGAN
+            // =========================
+            $pelanggan = Pelanggan::firstOrCreate(
+                ['nama_pelanggan' => $request->nama_pelanggan],
+                [
                     'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
                     'password' => bcrypt('123456'),
                     'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
                     'alamat' => '-',
                     'no_telepon' => '0'
+                ]
+            );
+
+            // =========================
+            // 2. ALTERNATIF SPK
+            // =========================
+            $exists = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->where('pedagang', strtolower(trim($request->pedagang ?? '-')))
+                ->exists();
+
+            if (!$exists) {
+                $lastAlt = Alternatif::orderByDesc('id')->first();
+                $lastNum = $lastAlt ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif)) : 0;
+
+                Alternatif::create([
+                    'id_pelanggan' => $pelanggan->id_pelanggan,
+                    'nama_alternatif' => $pelanggan->nama_pelanggan,
+                    'kode_alternatif' => 'A' . ($lastNum + 1),
+                    'pedagang' => strtolower(trim($request->pedagang ?? '-'))
                 ]);
+            }
 
-                // 2. LOGIKA SINKRONISASI KE TABEL ALTERNATIF
-                // Cek apakah pelanggan ini sudah terdaftar sebagai alternatif SPK
-                $exists = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
-    ->where('pedagang', strtolower(trim($request->pedagang ?? '-')))
-    ->exists();
-                
-                if (!$exists) {
-                    // Ambil kode terakhir untuk menentukan nomor urut (A1, A2, dst)
-                    $lastAlt = Alternatif::orderByRaw('LENGTH(kode_alternatif) DESC')
-                                ->orderBy('kode_alternatif', 'desc')
-                                ->first();
-                                
-                    $lastNum = $lastAlt ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif)) : 0;
-                    $newKode = "A" . ($lastNum + 1);
+            // =========================
+            // 3. AMBIL DISKON SPK (FIX FINAL)
+            // =========================
+            $tahunTransaksi = date('Y', strtotime($request->tanggal));
+            $tahunAmbil = $tahunTransaksi - 1;
 
-                    Alternatif::create([
-                        'id_pelanggan'    => $pelanggan->id_pelanggan,
-                        'nama_alternatif' => $pelanggan->nama_pelanggan,
-                        'kode_alternatif' => $newKode,
-                        'pedagang' => strtolower(trim($request->pedagang ?? '-'))
-                    ]);
-                }
+            $dataDiskon = DB::table('hasil_perhitungan')
+                ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
+                ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$this->normalize($request->pedagang ?? '-')])
+                ->where('tahun', $tahunAmbil)
+                ->first();
 
-                 // =========================================
-// 🔥 3. AMBIL DISKON DARI RANKING
-// =========================================
-$tahunTransaksi = date('Y', strtotime($request->tanggal));
-$tahunAmbil = $tahunTransaksi - 1;
+            // 🔥 LOG DEBUG
+            \Log::info("CEK DISKON SPK", [
+                'nama' => $request->nama_pelanggan,
+                'pedagang' => $request->pedagang,
+                'tahun' => $tahunAmbil,
+                'hasil' => $dataDiskon
+            ]);
 
-$dataDiskon = DB::table('hasil_perhitungan')
-    ->where('nama', $this->normalize($request->nama_pelanggan))
-    ->where('pedagang', $this->normalize($request->pedagang ?? '-'))
-    ->where('tahun', $tahunAmbil)
-    ->first();
+            if (!$dataDiskon) {
+                \Log::warning("SPK TIDAK DITEMUKAN → DISKON 0");
+            }
 
-$diskon = $dataDiskon->diskon ?? 0;
+            // =========================
+            // 4. FINAL DISKON (AMAN)
+            // =========================
+            $diskon = $dataDiskon ? (float) $dataDiskon->diskon : 0;
 
-            // =========================================
-            // 3. SIMPAN TRANSAKSI (PAKAI DISKON)
-            // =========================================
+            // =========================
+            // 5. SIMPAN TRANSAKSI
+            // =========================
             $transaksi = Transaksi::create([
                 'id_pelanggan' => $pelanggan->id_pelanggan,
-                'nama_pelanggan' => $pelanggan->nama_pelanggan,
                 'tanggal' => $request->tanggal,
                 'total_pembelian' => $request->total_pembelian,
                 'total_harga' => $request->total_harga,
                 'tempat_transaksi' => $request->tempat_transaksi,
                 'pedagang' => strtolower(trim($request->pedagang ?? '-')),
-                'harga_per_pcs' => 2500,
-                'diskon' => $diskon // ✅ MASUK DI SINI
+                'diskon' => $diskon
             ]);
 
-                // 4. Simpan Detail Transaksi
-                $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
+            // =========================
+            // 6. DETAIL TRANSAKSI
+            // =========================
+            $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
 
-                foreach ($request->items as $item) {
-                    $idProduk = $semuaProduk[$item['nama']] ?? null;
-                    
-                    DetailTransaksi::create([
-                        'id_transaksi' => $transaksi->id_transaksi,
-                        'id_produk' => $idProduk,
-                        'jumlah' => $item['jumlah'],
-                        'sub_total' => $item['jumlah'] * ($request->harga_per_pcs ?? 2500),
-                    ]);
-                }
+            foreach ($request->items as $item) {
+                DetailTransaksi::create([
+                    'id_transaksi' => $transaksi->id_transaksi,
+                    'id_produk' => $semuaProduk[$item['nama']] ?? null,
+                    'jumlah' => $item['jumlah'],
+                    'sub_total' => $item['jumlah'] * 2500,
+                ]);
+            }
 
-                return response()->json([
-                    'message' => 'Transaksi berhasil disimpan dan disinkronkan ke Alternatif!',
-                    'data' => $transaksi->load('pelanggan')
-                ], 201);
-            });
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
-        }
+            return response()->json([
+                'message' => 'Transaksi berhasil + diskon SPK berhasil masuk!',
+                'data' => $transaksi->load('pelanggan')
+            ], 201);
+        });
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Gagal: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Menampilkan detail satu transaksi untuk diedit
@@ -197,7 +212,7 @@ $diskon = $dataDiskon->diskon ?? 0;
                     'total_pembelian' => $request->total_pembelian,
                     'total_harga' => $request->total_harga,
                     'tempat_transaksi' => $request->tempat_transaksi,
-                    'pedagang' => $request->pedagang
+                    'pedagang' => strtolower(trim($request->pedagang ?? '-'))
                 ]);
 
                 // 3. Update Detail Transaksi
@@ -242,23 +257,35 @@ $diskon = $dataDiskon->diskon ?? 0;
     }
 
     public function laporanDiskon(Request $request)
-{
-    $tahun = $request->query('tahun', date('Y'));
+    {
+        $tahun = $request->query('tahun', date('Y'));
+    
+        $data = DB::table('transaksi as t')
+    ->join('pelanggan as p', 't.id_pelanggan', '=', 'p.id_pelanggan')
+    ->whereBetween('t.tanggal', [
+        $tahun . '-01-01',
+        $tahun . '-12-31'
+    ])
+    ->select(
+        't.id_pelanggan',
+        'p.nama_pelanggan',
+        't.pedagang',
+        DB::raw('COUNT(*) as total_transaksi'),
+        DB::raw('SUM(t.total_pembelian) as total_pembelian'),
+        DB::raw('SUM(t.total_harga) as total_harga'),
+    
+        // 🔥 FIX DISKON %
+        DB::raw('AVG(t.diskon) as rata_rata_diskon'),
+    
+        // 🔥 FIX NILAI RUPIAH DISKON (BENAR)
+        DB::raw('SUM((t.total_harga * t.diskon) / 100) as total_diskon')
+    )
+    ->groupBy('t.id_pelanggan', 'p.nama_pelanggan', 't.pedagang')
+    ->havingRaw('SUM(t.total_harga) > 0')
+    ->orderByDesc('total_diskon')
+    ->get();
 
-    $data = DB::table('transaksi')
-        ->select(
-            'nama_pelanggan',
-            'pedagang',
-            DB::raw('COUNT(*) as total_transaksi'),
-            DB::raw('SUM(total_pembelian) as total_pembelian'),
-            DB::raw('SUM(total_harga) as total_harga'),
-            DB::raw('SUM((total_harga * diskon)/100) as total_diskon')
-        )
-        ->whereYear('tanggal', $tahun)
-        ->groupBy('nama_pelanggan', 'pedagang')
-        ->orderByDesc('total_diskon')
-        ->get();
-
-    return response()->json($data);
-}
+    
+        return response()->json($data);
+    }
 }

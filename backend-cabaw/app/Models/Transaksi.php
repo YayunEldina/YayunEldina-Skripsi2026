@@ -16,7 +16,9 @@ class Transaksi extends Model
         'total_harga',
         'tempat_transaksi',
         'pedagang',        
-        'id_pelanggan'
+        'id_pelanggan',
+        'harga_per_pcs',
+        'diskon'
     ];
 
     public function pelanggan()
