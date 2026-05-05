@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import NavbarAdmin from "../dashboard/navbar_admin";
@@ -34,6 +34,10 @@ const TambahTransaksiPenjualan = () => {
 const [selectedAlternatif, setSelectedAlternatif] = useState(null);
 const normalize = (val) => (val || "").toString().toLowerCase().trim();
 const [showDropdown, setShowDropdown] = useState(false);
+const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
+const [tempNewName, setTempNewName] = useState("");
+const dropdownRef = useRef(null);
+const [isNewFromDropdown, setIsNewFromDropdown] = useState(false);
   
   // Tambahkan state loading di sini
   const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
@@ -66,6 +70,14 @@ console.log("PEDAGANG DIPILIH:", pedagang);
   ];
 
   useEffect(() => {
+    // Cek Pelanggan Baru
+    if (namaPelanggan === "Pelanggan Baru") {
+      setDiskon(0);
+      setPrioritas("Pelanggan Baru");
+      setIsLoadingDiskon(false);
+      return;
+    }
+  
     if (!namaPelanggan || !pedagang) {
       setDiskon(0);
       setPrioritas("-");
@@ -81,7 +93,7 @@ console.log("PEDAGANG DIPILIH:", pedagang);
       .then(res => {
         const data = res.data;
   
-        const found = data.find(item => 
+        const found = data.find(item =>
           normalize(item.nama) === normalize(namaPelanggan) &&
           normalize(item.pedagang) === normalize(pedagang)
         );
@@ -101,11 +113,25 @@ console.log("PEDAGANG DIPILIH:", pedagang);
       .finally(() => {
         setIsLoadingDiskon(false);
       });
-  
     }, 500);
   
     return () => clearTimeout(delay);
   }, [namaPelanggan, pedagang]);
+
+  // 👇 INI TAMBAHAN BARU
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+  
+    document.addEventListener("click", handleClickOutside);
+  
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   const totalPembelian = useMemo(() => {
     return Object.values(jumlah).reduce((acc, val) => acc + (parseInt(val) || 0), 0);
@@ -131,8 +157,13 @@ console.log("PEDAGANG DIPILIH:", pedagang);
   };
 
   const handleSimpan = async () => {
-    if (!namaPelanggan || !pedagang || selectedKerupuk.length === 0) {
+    if (!namaPelanggan || selectedKerupuk.length === 0) {
       alert("Mohon lengkapi data pelanggan dan pesanan");
+      return;
+    }
+    
+    if (!pedagang.trim()) {
+      alert("Pedagang wajib diisi");
       return;
     }
 
@@ -146,7 +177,7 @@ console.log("PEDAGANG DIPILIH:", pedagang);
       jenis_kelamin: jenisKelamin,
       tanggal,
       tempat_transaksi: tempatTransaksi,
-      pedagang,
+      pedagang: pedagang.trim() || "-", 
       total_pembelian: totalPembelian,
       total_harga: totalHarga, // ✅ BENAR
       harga_per_pcs: 2500,
@@ -163,24 +194,27 @@ console.log("Prioritas:", prioritas);
 console.log("Loading:", isLoadingDiskon);
 console.log("Payload:", payload);
 
-    try {
-      await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
-      alert("Transaksi berhasil!");
-      navigate("/admin/transaksi");
-    } catch (error) {
-      alert("Gagal menyimpan transaksi");
-    }
+try {
+  await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
+
+  alert("Transaksi berhasil!");
+  navigate("/admin/transaksi");
+
+} catch (error) {
+  console.log("ERROR:", error.response?.data);
+  alert("Gagal menyimpan transaksi");
+}
   };
 
   const keyword = namaPelanggan.toLowerCase();
 
-const filteredAlternatif = alternatifList.filter((item) => {
-  return (
-    (item.nama_alternatif || "").toLowerCase().includes(keyword) ||
-    (item.pedagang || "").toLowerCase().includes(keyword)
-  );
-});
-
+  const filteredAlternatif = alternatifList.filter((item) => {
+    return (
+      (item.nama_alternatif || "").toLowerCase().includes(keyword) ||
+      (item.pedagang || "").toLowerCase().includes(keyword)
+    );
+  });
+  
   return (
     <div className="bg-white min-h-screen">
       <div className="pt-[30px]">
@@ -231,44 +265,92 @@ const filteredAlternatif = alternatifList.filter((item) => {
     Nama Pelanggan
   </label>
 
-  {/* SEARCH + DROPDOWN */}
-  <div className="flex-1 relative">
-    <input
-      type="text"
-      value={namaPelanggan}
-      onChange={(e) => {
-        setNamaPelanggan(e.target.value);
-        setShowDropdown(true);
-        setSelectedAlternatif(null);
-      }}
-      onFocus={() => setShowDropdown(true)}
-      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-      placeholder="Cari / pilih pelanggan..."
-      className="w-full border rounded-lg px-3 py-2"
-    />
+   {/* SEARCH + DROPDOWN */}
+  <div className="flex-1 relative" ref={dropdownRef}>
+  <input
+  type="text"
+  value={namaPelanggan}
+  onChange={(e) => {
+    setNamaPelanggan(e.target.value);
+    setShowDropdown(true);
+    setSelectedAlternatif(null);
+  }}
+  onFocus={() => setShowDropdown(true)}
+  placeholder="Cari / pilih pelanggan..."
+  className="w-full border rounded-lg px-3 py-2"
+/>
 
     {showDropdown && (
       <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
-        {alternatifList
-          .filter((alt) =>
-            (alt.nama_alternatif || "")
-              .toLowerCase()
-              .includes(namaPelanggan.toLowerCase())
-          )
-          .map((alt) => (
-            <div
-              key={alt.id_alternatif}
-              onClick={() => {
-                setSelectedAlternatif(alt);
-                setNamaPelanggan(alt.nama_alternatif);
-                setPedagang(alt.pedagang);
-                setShowDropdown(false);
-              }}
-              className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+
+        {/* LIST EXISTING */}
+        {filteredAlternatif.map((alt) => (
+  <div
+    key={alt.id_alternatif}
+    onClick={() => {
+      setSelectedAlternatif(alt);
+      setNamaPelanggan(alt.nama_alternatif);
+      setPedagang(alt.pedagang);
+      setIsNewFromDropdown(false); // ✅ WAJIB
+      setShowDropdown(false);
+    }}
+    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+  >
+    {alt.nama_alternatif} - {alt.pedagang}
+  </div>
+))}
+
+            {/* 👇 TAMBAHKAN DI SINI */}
+    {filteredAlternatif.length === 0 && (
+      <div className="px-3 py-2 text-gray-400 text-sm">
+        Tidak ditemukan
+      </div>
+    )}
+
+        {/* DIVIDER */}
+        <div className="border-t mt-2 pt-2 px-3">
+
+          {/* TAMBAH PELANGGAN BARU */}
+          {!isAddingNewCustomer ? (
+            <button
+              onMouseDown={() => setIsAddingNewCustomer(true)}
+              className="text-blue-600 text-sm font-semibold"
             >
-              {alt.nama_alternatif} - {alt.pedagang}
+              + Tambah pelanggan baru
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={tempNewName}
+                onChange={(e) => setTempNewName(e.target.value)}
+                placeholder="Nama pelanggan baru..."
+                className="w-full border px-2 py-1 rounded text-sm"
+                autoFocus
+              />
+
+<button
+  className="bg-blue-600 text-white px-2 rounded text-sm"
+  onClick={() => {
+    if (!tempNewName.trim()) return;
+  
+    const newName = tempNewName.trim();
+  
+    setNamaPelanggan(newName);
+    setPedagang("-");
+    setSelectedAlternatif(null);
+    setIsNewFromDropdown(true); // ✅ penting
+  
+    setTempNewName("");
+    setIsAddingNewCustomer(false);
+    setShowDropdown(false);
+  }}
+>
+  Simpan
+</button>
             </div>
-          ))}
+          )}
+
+        </div>
       </div>
     )}
   </div>
@@ -294,8 +376,12 @@ const filteredAlternatif = alternatifList.filter((item) => {
                   <input
   type="text"
   value={pedagang}
-  readOnly
-  className="flex-1 border rounded-lg px-3 py-2 bg-gray-100"
+  onChange={(e) => setPedagang(e.target.value)}
+  readOnly={!!selectedAlternatif} 
+  placeholder="Masukkan nama pedagang"
+  className={`flex-1 border rounded-lg px-3 py-2 ${
+    selectedAlternatif ? "bg-gray-100" : "bg-white"
+  }`}
 />
                 </div>
               </div>

@@ -56,6 +56,10 @@ class TransaksiController extends Controller
     try {
         return DB::transaction(function () use ($request) {
 
+             // 🔥 TAMBAHKAN DI SINI
+    $pedagang = trim($request->pedagang);
+    $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
+
             // =========================
             // 1. PELANGGAN
             // =========================
@@ -74,18 +78,18 @@ class TransaksiController extends Controller
             // 2. ALTERNATIF SPK
             // =========================
             $exists = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
-                ->where('pedagang', strtolower(trim($request->pedagang ?? '-')))
+            ->where('pedagang', $pedagang)
                 ->exists();
 
             if (!$exists) {
-                $lastAlt = Alternatif::orderByDesc('id')->first();
+                $lastAlt = Alternatif::orderByDesc('id_alternatif')->first();
                 $lastNum = $lastAlt ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif)) : 0;
 
                 Alternatif::create([
                     'id_pelanggan' => $pelanggan->id_pelanggan,
                     'nama_alternatif' => $pelanggan->nama_pelanggan,
                     'kode_alternatif' => 'A' . ($lastNum + 1),
-                    'pedagang' => strtolower(trim($request->pedagang ?? '-'))
+                    'pedagang' => $pedagang
                 ]);
             }
 
@@ -127,7 +131,7 @@ class TransaksiController extends Controller
                 'total_pembelian' => $request->total_pembelian,
                 'total_harga' => $request->total_harga,
                 'tempat_transaksi' => $request->tempat_transaksi,
-                'pedagang' => strtolower(trim($request->pedagang ?? '-')),
+                'pedagang' => $pedagang,
                 'diskon' => $diskon
             ]);
 
@@ -136,14 +140,24 @@ class TransaksiController extends Controller
             // =========================
             $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
 
-            foreach ($request->items as $item) {
-                DetailTransaksi::create([
-                    'id_transaksi' => $transaksi->id_transaksi,
-                    'id_produk' => $semuaProduk[$item['nama']] ?? null,
-                    'jumlah' => $item['jumlah'],
-                    'sub_total' => $item['jumlah'] * 2500,
-                ]);
-            }
+foreach ($request->items as $item) {
+
+    // 🔥 ambil id produk
+    $idProduk = $semuaProduk[$item['nama']] ?? null;
+
+    // 🔥 VALIDASI DI SINI (INI POSISINYA)
+    if (!$idProduk) {
+        throw new \Exception("Produk tidak ditemukan: " . $item['nama']);
+    }
+
+    // 🔥 baru simpan
+    DetailTransaksi::create([
+        'id_transaksi' => $transaksi->id_transaksi,
+        'id_produk' => $idProduk,
+        'jumlah' => $item['jumlah'],
+        'sub_total' => $item['jumlah'] * 2500,
+    ]);
+}
 
             return response()->json([
                 'message' => 'Transaksi berhasil + diskon SPK berhasil masuk!',
@@ -212,7 +226,7 @@ class TransaksiController extends Controller
                     'total_pembelian' => $request->total_pembelian,
                     'total_harga' => $request->total_harga,
                     'tempat_transaksi' => $request->tempat_transaksi,
-                    'pedagang' => strtolower(trim($request->pedagang ?? '-'))
+                    'pedagang' => $pedagang
                 ]);
 
                 // 3. Update Detail Transaksi
