@@ -88,7 +88,7 @@ class TransaksiController extends Controller
                 Alternatif::create([
                     'id_pelanggan' => $pelanggan->id_pelanggan,
                     'nama_alternatif' => $pelanggan->nama_pelanggan,
-                    'kode_alternatif' => 'A' . ($lastNum + 1),
+                    'kode_alternatif' => ($lastNum + 1),
                     'pedagang' => $pedagang
                 ]);
             }
@@ -100,10 +100,10 @@ class TransaksiController extends Controller
             $tahunAmbil = $tahunTransaksi - 1;
 
             $dataDiskon = DB::table('hasil_perhitungan')
-                ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
-                ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$this->normalize($request->pedagang ?? '-')])
-                ->where('tahun', $tahunAmbil)
-                ->first();
+            ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
+            ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
+            ->where('tahun', $tahunAmbil)
+            ->first();
 
             // 🔥 LOG DEBUG
             \Log::info("CEK DISKON SPK", [
@@ -191,70 +191,139 @@ foreach ($request->items as $item) {
         ]);
     }
 
-    /**
-     * Memperbarui data transaksi (Update)
-     */
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'nama_pelanggan' => 'required',
-            'tanggal' => 'required|date',
-            'items' => 'required|array',
-        ]);
+/**
+ * Memperbarui data transaksi (Update)
+ */
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'nama_pelanggan' => 'required',
+        'tanggal'        => 'required|date',
+        'items'          => 'required|array',
+    ]);
 
-        try {
-            return DB::transaction(function () use ($request, $id) {
-                $transaksi = Transaksi::findOrFail($id);
+    try {
+        return DB::transaction(function () use ($request, $id) {
 
-                // 1. Update data Pelanggan
-                $pelanggan = Pelanggan::find($transaksi->id_pelanggan);
-                if ($pelanggan) {
-                    $pelanggan->update([
-                        'nama_pelanggan' => $request->nama_pelanggan,
-                        'jenis_kelamin' => $request->jenis_kelamin
-                    ]);
+            // ✅ FIX 1: definisikan $pedagang di awal (sama seperti store())
+            $pedagang = trim($request->pedagang ?? '-');
+            $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
 
-                    // Update juga nama di tabel alternatif agar sinkron
-                    Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)->update([
-                        'nama_alternatif' => $request->nama_pelanggan
-                    ]);
-                }
+            $transaksi = Transaksi::findOrFail($id);
 
-                // 2. Update data Transaksi Utama
-                $transaksi->update([
-                    'tanggal' => $request->tanggal,
-                    'total_pembelian' => $request->total_pembelian,
-                    'total_harga' => $request->total_harga,
-                    'tempat_transaksi' => $request->tempat_transaksi,
-                    'pedagang' => $pedagang
+            // =========================
+            // 1. Update data Pelanggan
+            // =========================
+            $pelanggan = Pelanggan::find($transaksi->id_pelanggan);
+            if ($pelanggan) {
+                $pelanggan->update([
+                    'nama_pelanggan' => $request->nama_pelanggan,
+                    'jenis_kelamin'  => $request->jenis_kelamin,
                 ]);
 
-                // 3. Update Detail Transaksi
-                DetailTransaksi::where('id_transaksi', $id)->delete();
-                
-                $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
+                // Sinkron nama di tabel alternatif
+                Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
+                    ->update(['nama_alternatif' => $request->nama_pelanggan]);
+            }
 
-                foreach ($request->items as $item) {
-                    $idProduk = $semuaProduk[$item['nama']] ?? null;
-                    
-                    DetailTransaksi::create([
-                        'id_transaksi' => $id,
-                        'id_produk' => $idProduk,
-                        'jumlah' => $item['jumlah'],
-                        'sub_total' => $item['jumlah'] * ($request->harga_per_pcs ?? 2500),
-                    ]);
+            // =========================
+// 2. UPDATE alternatif lama
+// =========================
+$alternatif = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
+    ->first();
+
+if ($alternatif) {
+
+    $alternatif->update([
+        'nama_alternatif' => $request->nama_pelanggan,
+        'pedagang'        => $pedagang,
+    ]);
+
+} else {
+
+    // kalau benar-benar belum ada baru create
+    $lastAlt = Alternatif::orderByDesc('id_alternatif')->first();
+
+    $lastNum = $lastAlt
+        ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif))
+        : 0;
+
+    Alternatif::create([
+        'id_pelanggan'    => $pelanggan->id_pelanggan,
+        'nama_alternatif' => $request->nama_pelanggan,
+        'kode_alternatif' => ($lastNum + 1),
+        'pedagang'        => $pedagang,
+    ]);
+}
+            // =========================
+            // 3. Ambil diskon SPK (tahun transaksi - 1)
+            // =========================
+            $tahunTransaksi = date('Y', strtotime($request->tanggal));
+            $tahunAmbil     = $tahunTransaksi - 1;
+
+            // ✅ pakai $pedagang (sudah lowercase & trim), bukan $request->pedagang
+            $dataDiskon = DB::table('hasil_perhitungan')
+            ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
+            ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
+            ->where('tahun', $tahunAmbil)
+            ->first();
+
+            $diskon = $dataDiskon ? (float) $dataDiskon->diskon : 0;
+
+            \Log::info("EDIT — CEK DISKON SPK", [
+                'nama'    => $request->nama_pelanggan,
+                'pedagang'=> $pedagang,
+                'tahun'   => $tahunAmbil,
+                'diskon'  => $diskon,
+            ]);
+
+            // =========================
+            // 4. Update Transaksi Utama
+            // =========================
+            $transaksi->update([
+                'tanggal'          => $request->tanggal,
+                'total_pembelian'  => $request->total_pembelian,
+                'total_harga'      => $request->total_harga,
+                'tempat_transaksi' => $request->tempat_transaksi,
+                'pedagang'         => $pedagang,  // ✅ sudah terdefinisi
+                'diskon'           => $diskon,
+            ]);
+
+            // =========================
+            // 5. Update Detail Transaksi
+            // =========================
+            DetailTransaksi::where('id_transaksi', $id)->delete();
+
+            $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
+
+            foreach ($request->items as $item) {
+                $idProduk = $semuaProduk[$item['nama']] ?? null;
+
+                if (!$idProduk) {
+                    throw new \Exception("Produk tidak ditemukan: " . $item['nama']);
                 }
 
-                return response()->json([
-                    'message' => 'Data transaksi dan alternatif berhasil diperbarui!',
-                    'status' => 'success'
-                ], 200);
-            });
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Gagal update: ' . $e->getMessage()], 500);
-        }
-    }
+                DetailTransaksi::create([
+                    'id_transaksi' => $id,
+                    'id_produk'    => $idProduk,
+                    'jumlah'       => $item['jumlah'],
+                    'sub_total'    => $item['jumlah'] * ($request->harga_per_pcs ?? 2500),
+                ]);
+            }
 
+            return response()->json([
+                'message' => 'Data transaksi berhasil diperbarui!',
+                'status'  => 'success',
+                'diskon'  => $diskon,
+            ], 200);
+        });
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Gagal update: ' . $e->getMessage()
+        ], 500);
+    }
+}
     /**
      * Menghapus transaksi (Delete)
      */
