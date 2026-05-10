@@ -245,26 +245,32 @@ class PerhitunganController extends Controller
         }
 
         // ========================================================
-        // 7. RANKING
+        // 7. PENENTUAN KATEGORI PRIORITAS BERDASARKAN KUOTA
         // ========================================================
         usort($hasilAkhir, fn($a, $b) => $b['nilai_v'] <=> $a['nilai_v']);
 
         $totalN = count($hasilAkhir);
-        $batasP1 = ceil($totalN * 0.1);
-        $batasP2 = ceil($totalN * 0.3);
-        $batasP3 = ceil($totalN * 0.6);
+
+        // Rumus:
+        // K = ceil(p × N)
+
+        // 10% pelanggan teratas
+        $kuotaTinggi = ceil(0.10 * $totalN);
+        // 30% pelanggan teratas
+        $kuotaSedang = ceil(0.30 * $totalN);
+        // 60% pelanggan teratas
+        $kuotaRendah = ceil(0.60 * $totalN);
 
         foreach ($hasilAkhir as $i => $item) {
             $rank = $i + 1;
             $hasilAkhir[$i]['rank'] = $rank;
-
-            if ($rank <= $batasP1) {
+            if ($rank <= $kuotaTinggi) {
                 $hasilAkhir[$i]['status_prioritas'] = 'Prioritas Tinggi';
                 $hasilAkhir[$i]['diskon'] = 15;
-            } elseif ($rank <= $batasP2) {
+            } elseif ($rank <= $kuotaSedang) {
                 $hasilAkhir[$i]['status_prioritas'] = 'Prioritas Sedang';
                 $hasilAkhir[$i]['diskon'] = 10;
-            } elseif ($rank <= $batasP3) {
+            } elseif ($rank <= $kuotaRendah) {
                 $hasilAkhir[$i]['status_prioritas'] = 'Prioritas Rendah';
                 $hasilAkhir[$i]['diskon'] = 5;
             } else {
