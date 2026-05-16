@@ -59,6 +59,11 @@ class PerhitunganController extends Controller
         // ========================================================
         $kriteriasObj = Kriteria::all();
         $kriteriasByKode = $kriteriasObj->keyBy('kode_kriteria');
+        
+        // =====================================
+        // NORMALISASI TOTAL BOBOT
+        // =====================================
+        $totalBobot = $kriteriasObj->sum('bobot');
 
         // ========================================================
         // 3. AMBIL DATA TRANSAKSI
@@ -174,7 +179,7 @@ class PerhitunganController extends Controller
                     ];
                 }
 
-                $row[$kode] = "(" . implode(",", array_map(fn($v)=>round($v,3), $r)) . ")";
+                $row[$kode] = "(" . implode(",", array_map(fn($v)=>round($v,5), $r)) . ")";
             }
 
             $matriksR[] = $row;
@@ -222,11 +227,31 @@ class PerhitunganController extends Controller
 
             foreach ($kriteriasObj as $k) {
                 $kode = strtoupper($k->kode_kriteria);
+                // =====================================
+                // AMBIL BOBOT FUZZY
+                // =====================================
                 $bobotArr = $this->parseFuzzy($k->bobot_fuzzy);
 
-                $v0 = $r[$kode][0] * $bobotArr[0];
-                $v1 = $r[$kode][1] * $bobotArr[1];
-                $v2 = $r[$kode][2] * $bobotArr[2];
+                // =====================================
+                // NORMALISASI BOBOT
+                // =====================================
+                $normalBobot = $k->bobot / $totalBobot;
+
+                // =====================================
+                // BOBOT FUZZY SETELAH DINORMALISASI
+                // =====================================
+                $bobotNormal = [
+                    $bobotArr[0] * $normalBobot,
+                    $bobotArr[1] * $normalBobot,
+                    $bobotArr[2] * $normalBobot
+                ];
+
+                // =====================================
+                // PEMBOBOTAN MATRIKS
+                // =====================================
+                $v0 = round($r[$kode][0] * $bobotNormal[0], 6);
+                $v1 = round($r[$kode][1] * $bobotNormal[1], 6);
+                $v2 = round($r[$kode][2] * $bobotNormal[2], 6);
 
                 $dPlus += sqrt((1/3)*(pow($v0-1,2)+pow($v1-1,2)+pow($v2-1,2)));
                 $dMin  += sqrt((1/3)*(pow($v0-0,2)+pow($v1-0,2)+pow($v2-0,2)));
@@ -238,9 +263,9 @@ class PerhitunganController extends Controller
                 'nama' => $alt->nama_alternatif,
                 'pedagang' => $alt->pedagang ?? '-',
                 'kode' => $alt->kode_alternatif,
-                'd_plus' => round($dPlus, 4),
-                'd_min'  => round($dMin, 4),
-                'nilai_v' => round($nilaiV, 4)
+                'd_plus' => round($dPlus, 5),
+                'd_min'  => round($dMin, 5),
+                'nilai_v' => round($nilaiV, 5)
             ];
         }
 
