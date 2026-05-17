@@ -4,8 +4,11 @@ import TampilanElemen from "../dashboard/TampilanElemen";
 
 const Perhitungan = () => {
   const [dataHitung, setDataHitung] = useState(null);
-  const [tahunTerpilih, setTahunTerpilih] = useState("2021");
+  const [tahunTerpilih, setTahunTerpilih] = useState(() => {
+    return localStorage.getItem("tahunPerhitungan") || "2025";
+  });
   const [loading, setLoading] = useState(true);
+const [searchTerm, setSearchTerm] = useState("");
 
   const fetchData = async (tahun) => {
     setLoading(true);
@@ -24,6 +27,14 @@ const Perhitungan = () => {
     fetchData(tahunTerpilih);
   }, [tahunTerpilih]);
 
+  const filterData = (data) => {
+    if (!searchTerm) return data;
+  
+    return data.filter((item) =>
+      item.nama.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
   return (
     <div className="flex min-h-screen bg-white">
 
@@ -31,7 +42,10 @@ const Perhitungan = () => {
         <NavbarAdmin />
 
         <div className="pt-[70px] px-0">
-          <TampilanElemen />
+        <TampilanElemen
+  searchTerm={searchTerm}
+  setSearchTerm={setSearchTerm}
+/>
         </div>
 
         <div className="px-8 mt-6 flex justify-between items-center">
@@ -46,7 +60,10 @@ const Perhitungan = () => {
             {["2021", "2022", "2023", "2024", "2025"].map((y, i) => (
               <button
                 key={i}
-                onClick={() => setTahunTerpilih(y)}
+                onClick={() => {
+                  setTahunTerpilih(y);
+                  localStorage.setItem("tahunPerhitungan", y);
+                }}
                 className={`px-5 py-2 rounded-full border text-sm transition-all ${
                   y === tahunTerpilih ? "bg-[#1E3A5F] text-white" : "bg-white text-slate-600 hover:bg-slate-50"
                 }`}
@@ -58,19 +75,16 @@ const Perhitungan = () => {
         </div>
 
         <div className="px-8 pb-10 mt-6">
-          {loading ? (
-            <div className="mt-10 text-center text-slate-500 italic animate-pulse">
-              Menyinkronkan data & menghitung Tahapan Fuzzy TOPSIS...
-            </div>
-          ) : dataHitung ? (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 space-y-10">
+  {dataHitung && (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 space-y-10">
               
               {/* TAHAP 1: KONVERSI FUZZY */}
               <Section title="Nilai Keterangan Kriteria Pelanggan yang Di Konversikan" />
               <TableWrapper>
                 <Table
+                 loading={loading}
                   headers={["Alternatif / Kriteria", "C1", "C2", "C3", "C4"]}
-                  rows={dataHitung?.matriks_fuzzy?.map((item) => [
+                  rows={filterData(dataHitung?.matriks_fuzzy || []).map((item) => [
                     item.nama, item.C1, item.C2, item.C3, item.C4
                   ]) || []}
                 />
@@ -80,24 +94,26 @@ const Perhitungan = () => {
               <Section title="Matrik Ternormalisasi R" />
               <TableWrapper>
                 <Table
-                  headers={["Xij", "C1", "C2", "C3", "C4"]}
-                  rows={dataHitung?.matriks_r?.map((item) => [
+                 loading={loading}
+                  headers={["Alternatif/Xij", "C1", "C2", "C3", "C4"]}
+                  rows={filterData(dataHitung?.matriks_r || []).map((item) => [
                     item.nama, item.C1, item.C2, item.C3, item.C4
                   ]) || []}
                 />
               </TableWrapper>
 
-              {/* TAHAP 3: MATRIKS TERBOBOT (Sesuai Logika Backend kamu) */}
+              {/* TAHAP 3: MATRIKS TERBOBOT */}
               <Section title="Matrik Ternormalisasi Terbobot Y" />
               <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-700 mb-4 italic">
-                * Matriks ini merupakan hasil perkalian Matriks R dengan Bobot Fuzzy Kriteria.
+                {/* * Matriks ini merupakan hasil perkalian Matriks R dengan Bobot Fuzzy Kriteria. */}
               </div>
               <TableWrapper>
                 <Table
-                  headers={["rij", "C1", "C2", "C3", "C4"]}
-                  rows={dataHitung?.matriks_r?.map((item) => [
+                 loading={loading}
+                  headers={["Alternatif/rij", "C1", "C2", "C3", "C4"]}
+                  rows={filterData(dataHitung?.matriks_r || []).map((item) => [
                     item.nama, item.C1, item.C2, item.C3, item.C4
-                  ]) || []} 
+                  ])}
                 />
               </TableWrapper>
 
@@ -105,6 +121,7 @@ const Perhitungan = () => {
               <Section title="Solusi Ideal Positif (+) dan Negatif (-)" />
               <TableWrapper>
                 <Table
+                 loading={loading}
                   headers={[" ", "C1", "C2", "C3", "C4"]}
                   rows={[
                     ["y +j", "(1,1,1)", "(1,1,1)", "(1,1,1)", "(1,1,1)"],
@@ -117,15 +134,16 @@ const Perhitungan = () => {
               <Section title="Menghitung Jarak Nilai Alternatif Positif (+) dan Negatif (-)" />
               <TableWrapper>
                 <Table
+                 loading={loading}
                   headers={["Alternatif", "D+", "D-"]}
-                  rows={dataHitung?.hasil_akhir?.map((item) => [
+                  rows={filterData(dataHitung?.hasil_akhir || []).map((item) => [
                     item.nama, item.d_plus, item.d_min
-                  ]) || []}
+                  ])}
                 />
               </TableWrapper>
               
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
@@ -138,26 +156,72 @@ const Section = ({ title }) => (
 );
 
 const TableWrapper = ({ children }) => (
-  <div className="overflow-x-auto border border-slate-200 rounded-lg mb-8 shadow-sm">{children}</div>
+  <div className="overflow-x-auto border border-gray-300 bg-white mb-8">
+    {children}
+  </div>
 );
 
-const Table = ({ headers, rows }) => (
-  <table className="min-w-full text-sm">
-    <thead className="bg-slate-50">
+const Table = ({ headers, rows, loading }) => (
+  <table className="w-full text-sm border-collapse">
+
+    {/* HEADER */}
+    <thead className="bg-[#F8FAFC]">
       <tr>
         {headers.map((h, i) => (
-          <th key={i} className="px-6 py-4 border-b text-center font-bold text-slate-700 uppercase tracking-wider">{h}</th>
+          <th
+            key={i}
+            className="border border-gray-300 px-4 py-3 text-center"
+          >
+            {h}
+          </th>
         ))}
       </tr>
     </thead>
-    <tbody className="divide-y divide-slate-100">
-      {rows.map((row, i) => (
-        <tr key={i} className="hover:bg-slate-50 transition-colors">
-          {row.map((cell, j) => (
-            <td key={j} className="px-6 py-4 text-center text-slate-600 font-medium">{cell}</td>
-          ))}
+
+    {/* BODY */}
+    <tbody>
+
+      {loading ? (
+        <tr>
+          <td
+            colSpan={headers.length}
+            className="border border-gray-300 text-center py-10 italic text-gray-500"
+          >
+            Menyinkronkan data & menghitung Tahapan Fuzzy TOPSIS...
+          </td>
         </tr>
-      ))}
+
+      ) : rows.length > 0 ? (
+
+        rows.map((row, i) => (
+          <tr
+            key={i}
+            className="hover:bg-gray-50 transition"
+          >
+            {row.map((cell, j) => (
+              <td
+                key={j}
+                className="border border-gray-300 px-4 py-3 text-center"
+              >
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))
+
+      ) : (
+
+        <tr>
+          <td
+            colSpan={headers.length}
+            className="border border-gray-300 text-center py-10 text-gray-400 italic"
+          >
+            Tidak ada data
+          </td>
+        </tr>
+
+      )}
+
     </tbody>
   </table>
 );

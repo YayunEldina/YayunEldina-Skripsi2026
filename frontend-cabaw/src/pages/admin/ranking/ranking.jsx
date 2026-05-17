@@ -5,8 +5,11 @@ import TampilanElemen from "../dashboard/TampilanElemen";
 
 const Ranking = () => {
   const [dataHitung, setDataHitung] = useState([]);
-  const [tahunTerpilih, setTahunTerpilih] = useState("2025"); // Default ke 2025 sesuai rencana
+  const [tahunTerpilih, setTahunTerpilih] = useState(() => {
+    return localStorage.getItem("tahunRanking") || "2025";
+  });
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchData = async (tahun) => {
     setLoading(true);
@@ -26,6 +29,12 @@ const Ranking = () => {
     fetchData(tahunTerpilih);
   }, [tahunTerpilih]);
 
+  const filteredData = dataHitung.filter((item) =>
+  Object.values(item).some((value) =>
+    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+  )
+);
+
   return (
     <div className="flex min-h-screen bg-white">
 
@@ -33,7 +42,10 @@ const Ranking = () => {
       <NavbarAdmin />
 
       <div className="pt-[70px] px-0">
-        <TampilanElemen />
+        <TampilanElemen
+  searchTerm={searchTerm}
+  setSearchTerm={setSearchTerm}
+/>
       </div>
 
         <div className="px-6 mt-6">
@@ -48,7 +60,10 @@ const Ranking = () => {
             {["2021", "2022", "2023", "2024", "2025"].map((y, i) => (
               <button
                 key={i}
-                onClick={() => setTahunTerpilih(y)}
+                onClick={() => {
+                  setTahunTerpilih(y);
+                  localStorage.setItem("tahunRanking", y);
+                }}
                 className={`px-5 py-2 rounded-full border text-sm transition ${
                   y === tahunTerpilih
                     ? "bg-[#1E3A5F] text-white"
@@ -77,7 +92,7 @@ const Ranking = () => {
                     "Prioritas Sistem",
                     "Diskon",
                   ]}
-                  rows={dataHitung.map((item) => [
+                  rows={filteredData.map((item) => [
                     item.nama,
                     item.nilai_v.toString().replace(".", ","),
                     item.rank, // Menggunakan rank dari backend
@@ -118,7 +133,7 @@ const Table = ({ headers, rows, loading }) => (
         {headers.map((h, i) => (
           <th
             key={i}
-            className="border border-gray-300 px-4 py-3 text-left"
+            className="border border-gray-300 px-4 py-3 text-center"
           >
             {h}
           </th>
@@ -147,9 +162,9 @@ const Table = ({ headers, rows, loading }) => (
     >
       {row.map((cell, j) => (
         <td
-          key={j}
-          className="border border-gray-300 px-4 py-3 text-slate-700"
-        >
+        key={j}
+        className="border border-gray-300 px-4 py-3 text-slate-700 text-center"
+      >
 
           {/* WARNA PRIORITAS */}
           {cell === "Prioritas Tinggi" ? (

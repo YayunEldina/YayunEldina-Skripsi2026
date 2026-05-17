@@ -1,7 +1,7 @@
 import React from "react";
 import { FiSearch, FiFilter } from "react-icons/fi";
 
-const TampilanElemen = () => {
+const TampilanElemen = ({ searchTerm, setSearchTerm }) => {
   // Fungsi untuk mendapatkan tanggal hari ini otomatis
   const formatTanggal = () => {
     return new Intl.DateTimeFormat("id-ID", {
@@ -32,10 +32,12 @@ const TampilanElemen = () => {
       <div className="relative group">
         <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-base-400 group-focus-within:text-[#1E3A5F] transition-colors" />
         <input
-          type="text"
-          placeholder="Search all"
-          className="pl-10 pr-6 py-2 w-64 bg-white border border-gray-200 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/10 focus:border-[#1E3A5F] transition-all"
-        />
+  type="text"
+  placeholder="Search alternatif..."
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  className="pl-10 pr-6 py-2 w-64 bg-white border border-gray-200 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/10 focus:border-[#1E3A5F] transition-all"
+/>
       </div>
 
     </div>
