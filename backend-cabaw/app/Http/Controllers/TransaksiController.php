@@ -340,35 +340,50 @@ if ($alternatif) {
     }
 
     public function laporanDiskon(Request $request)
-    {
-        $tahun = $request->query('tahun', date('Y'));
-    
-        $data = DB::table('transaksi as t')
-    ->join('pelanggan as p', 't.id_pelanggan', '=', 'p.id_pelanggan')
-    ->whereBetween('t.tanggal', [
-        $tahun . '-01-01',
-        $tahun . '-12-31'
-    ])
-    ->select(
-        't.id_pelanggan',
-        'p.nama_pelanggan',
-        't.pedagang',
-        DB::raw('COUNT(*) as total_transaksi'),
-        DB::raw('SUM(t.total_pembelian) as total_pembelian'),
-        DB::raw('SUM(t.total_harga) as total_harga'),
-    
-        // 🔥 FIX DISKON %
-        DB::raw('AVG(t.diskon) as rata_rata_diskon'),
-    
-        // 🔥 FIX NILAI RUPIAH DISKON (BENAR)
-        DB::raw('SUM((t.total_harga * t.diskon) / 100) as total_diskon')
-    )
-    ->groupBy('t.id_pelanggan', 'p.nama_pelanggan', 't.pedagang')
-    ->havingRaw('SUM(t.total_harga) > 0')
-    ->orderByDesc('total_diskon')
-    ->get();
+{
+    $tahun = $request->query('tahun', date('Y'));
 
-    
-        return response()->json($data);
-    }
+    $data = DB::table('transaksi as t')
+        ->join('pelanggan as p', 't.id_pelanggan', '=', 'p.id_pelanggan')
+
+        ->whereBetween('t.tanggal', [
+            $tahun . '-01-01',
+            $tahun . '-12-31'
+        ])
+
+        ->select(
+            DB::raw('MONTH(t.tanggal) as bulan'),
+
+            't.id_pelanggan',
+            'p.nama_pelanggan',
+            't.pedagang',
+
+            DB::raw('COUNT(*) as total_transaksi'),
+            DB::raw('SUM(t.total_pembelian) as total_pembelian'),
+            DB::raw('SUM(t.total_harga) as total_harga'),
+
+            // rata-rata diskon %
+            DB::raw('AVG(t.diskon) as rata_rata_diskon'),
+
+            // total nominal diskon rupiah
+            DB::raw('SUM((t.total_harga * t.diskon) / 100) as total_diskon')
+        )
+
+        ->groupBy(
+            DB::raw('MONTH(t.tanggal)'),
+
+            't.id_pelanggan',
+            'p.nama_pelanggan',
+            't.pedagang'
+        )
+
+        ->havingRaw('SUM(t.total_harga) > 0')
+
+        ->orderBy('bulan', 'asc')
+        ->orderByDesc('total_diskon')
+
+        ->get();
+
+    return response()->json($data);
+}
 }

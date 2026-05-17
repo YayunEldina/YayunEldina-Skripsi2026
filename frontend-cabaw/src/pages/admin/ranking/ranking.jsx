@@ -62,16 +62,14 @@ const Ranking = () => {
         </div>
 
         <div className="px-6 pb-10 mt-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm space-y-6 border border-[#E5E5EA]">
+        <div className="space-y-6">
             <h1 className="text-xl font-semibold text-slate-800">
               Nilai Preferensi / Ranking Tahun {tahunTerpilih}
             </h1>
 
-            {loading ? (
-              <div className="text-center py-10 text-slate-500">Memproses Data Fuzzy TOPSIS...</div>
-            ) : (
               <TableWrapper>
-                <Table
+               <Table
+                  loading={loading}
                   headers={[
                     "Alternatif",
                     "Preferensi (V)",
@@ -88,7 +86,6 @@ const Ranking = () => {
                   ])}
                 />
               </TableWrapper>
-            )}
             
             {!loading && dataHitung.length === 0 && (
               <div className="text-center py-4 text-red-500 text-sm">
@@ -107,35 +104,92 @@ export default Ranking;
 /* ================= REUSABLE COMPONENTS ================= */
 
 const TableWrapper = ({ children }) => (
-  <div className="overflow-x-auto border border-[#E5E5EA] rounded-xl">
+  <div className="overflow-x-auto border border-gray-300 bg-white">
     {children}
   </div>
 );
 
-const Table = ({ headers, rows }) => (
-  <table className="min-w-full text-sm border-collapse">
-    <thead className="bg-slate-50 text-slate-700">
+const Table = ({ headers, rows, loading }) => (
+  <table className="w-full text-sm border-collapse">
+
+    {/* HEADER KOLOM */}
+    <thead className="bg-[#F8FAFC]">
       <tr>
         {headers.map((h, i) => (
-          <th key={i} className="px-4 py-3 border border-[#E5E5EA] text-center font-semibold">
+          <th
+            key={i}
+            className="border border-gray-300 px-4 py-3 text-left"
+          >
             {h}
           </th>
         ))}
       </tr>
     </thead>
+
+    {/* BODY */}
     <tbody>
-      {rows.map((row, i) => (
-        <tr key={i} className="hover:bg-slate-50 transition">
-          {row.map((cell, j) => (
-            <td key={j} className="px-4 py-3 border border-[#E5E5EA] text-center">
-              {/* Memberikan warna teks khusus untuk Prioritas Tinggi agar lebih menonjol */}
-              <span className={cell === "Prioritas Tinggi" ? "text-green-600 font-bold" : ""}>
-                {cell}
-              </span>
-            </td>
-          ))}
-        </tr>
+
+{loading ? (
+  <tr>
+    <td
+      colSpan={headers.length}
+      className="border border-gray-300 text-center py-10 text-slate-500 italic"
+    >
+      Memproses Data Fuzzy TOPSIS...
+    </td>
+  </tr>
+) : rows.length > 0 ? (
+
+  rows.map((row, i) => (
+    <tr
+      key={i}
+      className="hover:bg-gray-50 transition"
+    >
+      {row.map((cell, j) => (
+        <td
+          key={j}
+          className="border border-gray-300 px-4 py-3 text-slate-700"
+        >
+
+          {/* WARNA PRIORITAS */}
+          {cell === "Prioritas Tinggi" ? (
+            <span className="text-green-600 font-semibold">
+              {cell}
+            </span>
+          ) : cell === "Prioritas Sedang" ? (
+            <span className="text-yellow-600 font-semibold">
+              {cell}
+            </span>
+          ) : cell === "Prioritas Rendah" ? (
+            <span className="text-blue-600 font-semibold">
+              {cell}
+            </span>
+          ) : cell === "Tidak Prioritas" ? (
+            <span className="text-red-500 font-semibold">
+              {cell}
+            </span>
+          ) : (
+            cell
+          )}
+
+        </td>
       ))}
-    </tbody>
+    </tr>
+  ))
+
+) : (
+
+  <tr>
+    <td
+      colSpan={headers.length}
+      className="border border-gray-300 text-center py-10 text-red-500 italic"
+    >
+      Tidak ada data ranking
+    </td>
+  </tr>
+
+)}
+
+</tbody>
   </table>
 );

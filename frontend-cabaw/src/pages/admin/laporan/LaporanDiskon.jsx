@@ -4,16 +4,32 @@ import NavbarAdmin from "../dashboard/navbar_admin";
 
 const LaporanDiskon = () => {
   const [data, setData] = useState([]);
-  const [tahun, setTahun] = useState(new Date().getFullYear().toString());
+  const [tahun] = useState("2026");
   const [loading, setLoading] = useState(true);
+
+  const namaBulan = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
 
   const fetchData = async () => {
     setLoading(true);
+
     try {
       const res = await axios.get(
         `http://127.0.0.1:8000/api/laporan-diskon?tahun=${tahun}`
       );
-      console.log("DATA API:", res.data); // 🔥 tambah ini
+
       setData(res.data);
     } catch (err) {
       console.error("Gagal ambil laporan:", err);
@@ -24,99 +40,163 @@ const LaporanDiskon = () => {
 
   useEffect(() => {
     fetchData();
-  }, [tahun]);
+  }, []);
 
-  // 🔥 AUTO TAHUN
-  const tahunList = Array.from(
-    { length: new Date().getFullYear() - 2020 },
-    (_, i) => (2021 + i).toString()
-  );
+  // GROUP DATA PER BULAN
+  const groupedData = data.reduce((acc, item) => {
+    const bulan = item.bulan || "1";
+
+    if (!acc[bulan]) {
+      acc[bulan] = [];
+    }
+
+    acc[bulan].push(item);
+
+    return acc;
+  }, {});
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <NavbarAdmin />
 
-      <div className="pt-20 px-8">
+      <div className="pt-20 px-8 pb-10">
 
         {/* HEADER */}
-        <h1 className="text-2xl font-bold text-[#1E3A5F] mb-6">
-          Laporan Periodik Diskon
-        </h1>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-[#1E3A5F]">
+            Laporan Periodik Diskon 2026
+          </h1>
 
-        {/* FILTER TAHUN */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {tahunList.map((y) => (
-            <button
-              key={y}
-              onClick={() => setTahun(y)}
-              className={`px-4 py-2 rounded-full text-sm transition ${
-                tahun === y
-                  ? "bg-[#1E3A5F] text-white"
-                  : "bg-gray-100 hover:bg-gray-200"
-              }`}
-            >
-              {y}
-            </button>
-          ))}
+          <p className="text-gray-500 mt-1 text-sm">
+            Data laporan diskon pelanggan per bulan
+          </p>
         </div>
 
-        {/* TABLE */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-[#F1F5F9] text-slate-700">
-              <tr>
-                <th className="px-4 py-3 text-left">No</th>
-                <th className="px-4 py-3 text-left">Nama Pelanggan</th>
-                <th className="px-4 py-3 text-left">Pedagang</th>
-                <th className="px-4 py-3 text-left">Total Transaksi</th>
-                <th className="px-4 py-3 text-left">Total Pembelian</th>
-                <th className="px-4 py-3 text-left">Total Harga</th>
-                <th className="px-4 py-3 text-left">Total Diskon</th>
-              </tr>
-            </thead>
+        {/* LOOP BULAN */}
+        {Object.keys(groupedData).length > 0 || loading ? (
+          Array.from({ length: 12 }, (_, index) => {
+            const bulan = (index + 1).toString();
+            const laporanBulan = groupedData[bulan] || [];
 
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-10 italic">
-                    Memuat data...
-                  </td>
-                </tr>
-              ) : data.length > 0 ? (
-                data.map((item, i) => (
-                  <tr key={i} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3">{i + 1}</td>
-                    <td className="px-4 py-3 font-medium">
-                      {item.nama_pelanggan}
-                    </td>
-                    <td className="px-4 py-3">{item.pedagang}</td>
-                    <td className="px-4 py-3">{item.total_transaksi}</td>
-                    <td className="px-4 py-3">{item.total_pembelian}</td>
-                    <td className="px-4 py-3">
-  Rp{" "}
-  {parseFloat(item.total_harga || 0).toLocaleString("id-ID")}
-</td>
+            return (
+              <div
+                key={bulan}
+                className="bg-white border border-gray-300 mb-8 overflow-hidden"
+              >
+                {/* HEADER BULAN */}
+                <div className="bg-gray-100 border-b border-gray-300 px-5 py-3">
+                  <h2 className="font-semibold text-[#1E3A5F]">
+                    {namaBulan[index]} 2026
+                  </h2>
+                </div>
 
-<td className="px-4 py-3 text-green-600 font-semibold">
-  Rp{" "}
-  {parseFloat(item.total_diskon || 0).toLocaleString("id-ID")}
-</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan="7"
-                    className="text-center py-10 text-red-500 italic"
-                  >
-                    Tidak ada data laporan
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                {/* TABLE */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="bg-[#F8FAFC]">
+                      <tr>
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          No
+                        </th>
 
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          Nama Pelanggan
+                        </th>
+
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          Pedagang
+                        </th>
+
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          Total Transaksi
+                        </th>
+
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          Total Pembelian
+                        </th>
+
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          Total Harga
+                        </th>
+
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          Total Diskon
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {loading ? (
+                        <tr>
+                          <td
+                            colSpan="7"
+                            className="border border-gray-300 text-center py-8 italic text-gray-500"
+                          >
+                            Memuat data...
+                          </td>
+                        </tr>
+                      ) : laporanBulan.length > 0 ? (
+                        laporanBulan.map((item, i) => (
+                          <tr
+                            key={i}
+                            className="hover:bg-gray-50 transition"
+                          >
+                            <td className="border border-gray-300 px-4 py-3">
+                              {i + 1}
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3 font-medium">
+                              {item.nama_pelanggan}
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3">
+                              {item.pedagang}
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3">
+                              {item.total_transaksi}
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3">
+                              {item.total_pembelian}
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3">
+                              Rp{" "}
+                              {parseFloat(
+                                item.total_harga || 0
+                              ).toLocaleString("id-ID")}
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3 text-green-600 font-semibold">
+                              Rp{" "}
+                              {parseFloat(
+                                item.total_diskon || 0
+                              ).toLocaleString("id-ID")}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="7"
+                            className="border border-gray-300 text-center py-8 text-gray-400 italic"
+                          >
+                            Tidak ada data bulan ini
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="bg-white border border-gray-300 rounded-lg p-10 text-center text-gray-500 italic">
+            Tidak ada data laporan
+          </div>
+        )}
       </div>
     </div>
   );
