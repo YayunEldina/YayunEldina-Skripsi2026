@@ -87,51 +87,80 @@ const Alternatif = () => {
         </div>
 
         {/* TABLE SECTION */}
-        <div className="px-8 mt-6">
-          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-[#F8FAFC] text-slate-700 border-b border-[#E5E5EA]">
+        <div className="px-8 pb-10 mt-6">
+        <div className="rounded-xl shadow-sm">
+          <div className="overflow-x-auto border border-gray-300 bg-white">
+            <table className="w-full text-sm border-collapse">
+
+              {/* HEADER */}
+              <thead className="bg-[#F8FAFC]">
                 <tr>
-                  <th className="px-6 py-4 text-left">Kode Alternatif</th>
-                  <th className="px-6 py-4 text-left">Nama Alternatif</th>
-                  <th className="px-6 py-4 text-left">Pedagang</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">
+                    Kode Alternatif
+                  </th>
+
+                  <th className="border border-gray-300 px-4 py-3 text-center">
+                    Nama Alternatif
+                  </th>
+
+                  <th className="border border-gray-300 px-4 py-3 text-center">
+                    Pedagang
+                  </th>
                 </tr>
               </thead>
 
+              {/* BODY */}
               <tbody>
+
                 {loading ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-10">
-                      <div className="flex justify-center items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin"></div>
-                        Memuat data...
-                      </div>
+                    <td
+                      colSpan="3"
+                      className="border border-gray-300 text-center py-10 italic text-gray-500"
+                    >
+                      Memuat data alternatif pelanggan...
                     </td>
                   </tr>
+
                 ) : alternatifs.length > 0 ? (
+
                   alternatifs.map((item, i) => (
-                    <tr key={i} className="border-t border-[#E5E5EA] hover:bg-slate-50 transition">
-                      <td className="px-6 py-4 font-medium text-[#1E3A5F]">
+                    <tr
+                      key={i}
+                      className="hover:bg-gray-50 transition"
+                    >
+                      <td className="border border-gray-300 px-4 py-3 text-center font-medium text-[#1E3A5F]">
                         {item.kode_alternatif}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+
+                      <td className="border border-gray-300 px-4 py-3 text-center">
                         {item.nama_alternatif}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
+
+                      <td className="border border-gray-300 px-4 py-3 text-center">
                         {item.pedagang || "-"}
                       </td>
                     </tr>
                   ))
+
                 ) : (
+
                   <tr>
-                    <td colSpan="3" className="text-center py-10 text-gray-500">
-                      Data tidak ditemukan.
+                    <td
+                      colSpan="3"
+                      className="border border-gray-300 text-center py-10 text-gray-400 italic"
+                    >
+                      Data tidak ditemukan
                     </td>
                   </tr>
+
                 )}
+
               </tbody>
             </table>
+
           </div>
+        </div>
 
           {/* PAGINATION */}
           <div className="flex justify-between items-center mt-6 mb-10 text-sm text-gray-600">

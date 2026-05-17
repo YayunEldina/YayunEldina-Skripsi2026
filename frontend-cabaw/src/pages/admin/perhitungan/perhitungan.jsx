@@ -50,7 +50,7 @@ const [searchTerm, setSearchTerm] = useState("");
 
         <div className="px-8 mt-6 flex justify-between items-center">
           <button className="bg-[#1E3A5F] text-white px-6 py-2 rounded-full text-sm font-medium">
-            Perhitungan Pelanggan (Real-time)
+            Perhitungan Pelanggan 
           </button>
         </div>
 

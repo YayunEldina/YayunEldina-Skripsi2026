@@ -64,7 +64,7 @@ const LaporanDiskon = () => {
         {/* HEADER */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[#1E3A5F]">
-            Laporan Periodik Diskon 2026
+          Laporan Periodik Diskon {tahun}
           </h1>
 
           <p className="text-gray-500 mt-1 text-sm">
@@ -75,20 +75,26 @@ const LaporanDiskon = () => {
         {/* LOOP BULAN */}
         {Object.keys(groupedData).length > 0 || loading ? (
           Array.from({ length: 12 }, (_, index) => {
-            const bulan = (index + 1).toString();
+            const nomorBulan = index + 1;
+            const bulan = nomorBulan.toString();
             const laporanBulan = groupedData[bulan] || [];
+
+            // Sembunyikan Januari-April
+            if (tahun === "2026" && nomorBulan < 5) {
+              return null;
+            }
 
             return (
               <div
                 key={bulan}
                 className="bg-white border border-gray-300 mb-8 overflow-hidden"
               >
-                {/* HEADER BULAN */}
-                <div className="bg-gray-100 border-b border-gray-300 px-5 py-3">
-                  <h2 className="font-semibold text-[#1E3A5F]">
-                    {namaBulan[index]} 2026
-                  </h2>
-                </div>
+              {/* HEADER BULAN */}
+              <div className="bg-gray-100 border-b border-gray-300 px-5 py-3">
+              <h2 className="font-semibold text-[#1E3A5F]">
+              {namaBulan[index]} {tahun}
+              </h2>
+              </div>
 
                 {/* TABLE */}
                 <div className="overflow-x-auto">

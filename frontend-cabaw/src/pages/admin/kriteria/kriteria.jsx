@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import NavbarAdmin from "../dashboard/navbar_admin";
-import TampilanElemen from "../dashboard/TampilanElemen";
 
 const Kriteria = () => {
   const [dataKriteria, setDataKriteria] = useState([]);
@@ -44,12 +43,8 @@ const Kriteria = () => {
       <div className="flex-1">
         <NavbarAdmin />
 
-        <div className="pt-[70px] px-0">
-          <TampilanElemen />
-        </div>
-
         {/* TITLE TAG */}
-        <div className="px-8 mt-6">
+        <div className="px-8 mt-25">
           <button className="bg-[#1E3A5F] text-white px-6 py-2 rounded-full text-sm font-medium">
             Kriteria Pelanggan
           </button>
@@ -57,15 +52,15 @@ const Kriteria = () => {
 
         {/* TABLE 1: DATA UTAMA KRITERIA */}
         <div className="px-8 mt-6">
-          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-[#F8FAFC] text-slate-700 border-b border-[#E5E5EA]">
+        <div className="overflow-x-auto border border-gray-300 bg-white">
+        <table className="w-full text-sm border-collapse">
+        <thead className="bg-[#F8FAFC]">
                 <tr>
-                  <th className="px-6 py-4 font-bold text-center">Kode Kriteria</th>
-                  <th className="px-6 py-4 font-bold text-center">Nama Kriteria</th>
-                  <th className="px-6 py-4 font-bold text-center">Bobot Kriteria</th>
-                  <th className="px-6 py-4 font-bold text-center">Bobot Kriteria Fuzzy</th>
-                  <th className="px-6 py-4 font-bold text-center">Attribut</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Kode Kriteria</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Nama Kriteria</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Bobot Kriteria</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Bobot Kriteria Fuzzy</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Attribut</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5EA]">
@@ -78,11 +73,11 @@ const Kriteria = () => {
                 ) : dataKriteria.length > 0 ? (
                   dataKriteria.map((item, i) => (
                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-center font-semibold text-[#1E3A5F]">{item.kode_kriteria}</td>
-                      <td className="px-6 py-4 text-center text-slate-600">{item.nama_kriteria}</td>
-                      <td className="px-6 py-4 text-center text-slate-600">{item.bobot}</td>
-                      <td className="px-6 py-4 text-center font-mono text-blue-600">{item.bobot_fuzzy}</td>
-                      <td className="px-6 py-4 text-center">
+                     <td className="border border-gray-300 px-4 py-3 text-center">{item.kode_kriteria}</td>
+                      <td className="border border-gray-300 px-4 py-3 text-center">{item.nama_kriteria}</td>
+                      <td className="border border-gray-300 px-4 py-3 text-center">{item.bobot}</td>
+                      <td className="border border-gray-300 px-4 py-3 text-center">{item.bobot_fuzzy}</td>
+                      <td className="border border-gray-300 px-4 py-3 text-center">
                         <span
                           className={`px-4 py-1 rounded-full text-xs font-bold ${
                             item.atribut === "Benefit"
@@ -110,26 +105,26 @@ const Kriteria = () => {
         {/* TABLE 2: KETERANGAN DESKRIPTIF */}
         <div className="px-8 mt-10 pb-10">
           <h2 className="text-lg font-bold text-slate-800 mb-4 pl-2">Keterangan Detail Kriteria</h2>
-          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto border border-gray-300 bg-white">
+          <table className="w-full text-sm border-collapse">
               <thead className="bg-[#F8FAFC] text-slate-700 border-b border-[#E5E5EA]">
                 <tr>
-                  <th className="px-6 py-4 font-bold text-center w-1/4">Nama Kriteria</th>
-                  <th className="px-6 py-4 font-bold text-left">Keterangan Kriteria</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Nama Kriteria</th>
+                  <th className="border border-gray-300 px-20 py-3 text-left">Keterangan Kriteria</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E5EA]">
                 {loading ? (
                   <tr>
-                    <td colSpan="2" className="text-center py-4 text-slate-500 italic">Menyiapkan keterangan...</td>
+                    <td colSpan="2" className="border border-gray-300 px-4 py-3 text-center">Menyiapkan keterangan...</td>
                   </tr>
                 ) : (
                   dataKriteria.map((item, i) => (
                     <tr key={i} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-center font-bold text-slate-700">
+                      <td className="border border-gray-300 px-4 py-3 text-center">
                         {item.nama_kriteria}
                       </td>
-                      <td className="px-6 py-4 text-slate-600 leading-relaxed text-justify">
+                      <td className="border border-gray-300 px-20 py-3 text-left">
                         {deskripsiKriteria[item.kode_kriteria] || "Tidak ada keterangan tambahan."}
                       </td>
                     </tr>

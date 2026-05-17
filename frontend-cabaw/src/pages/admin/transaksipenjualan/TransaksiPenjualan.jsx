@@ -16,7 +16,9 @@ const TransaksiPenjualan = () => {
   const [dataTransaksi, setDataTransaksi] = useState([]);
   const [pagination, setPagination] = useState({});
   const [page, setPage] = useState(1);
-  const [tahunTerpilih, setTahunTerpilih] = useState("2021");
+  const [tahunTerpilih, setTahunTerpilih] = useState(() => {
+    return localStorage.getItem("tahunTransaksi") || "2021";
+  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -130,7 +132,11 @@ const TransaksiPenjualan = () => {
             {["2021", "2022", "2023", "2024", "2025", "2026"].map((y) => (
               <button
                 key={y}
-                onClick={() => { setTahunTerpilih(y); setPage(1); }}
+                onClick={() => {
+                  setTahunTerpilih(y);
+                  localStorage.setItem("tahunTransaksi", y);
+                  setPage(1);
+                }}
                 className={`px-5 py-2 rounded-full border text-sm transition-all ${
                   y === tahunTerpilih ? "bg-[#1E3A5F] text-white" : "bg-white text-slate-600"
                 }`}
@@ -146,20 +152,20 @@ const TransaksiPenjualan = () => {
 
         {/* Table Section */}
         <div className="px-8 mt-6 pb-4">
-          <div className="bg-white border border-[#E5E5EA] rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full table-auto text-sm">
-              <thead className="bg-[#F1F5F9] text-slate-700">
+        <div className="overflow-x-auto border border-gray-300 bg-white">
+              <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#F8FAFC]">
                 <tr>
-                  <th className="px-4 py-3 text-left">No</th>
-                  <th className="px-4 py-3 text-left">Nama Pelanggan</th>
-                  <th className="px-4 py-3 text-left">Jenis Kelamin</th>
-                  <th className="px-4 py-3 text-left">Tanggal</th>
-                  <th className="px-4 py-3 text-left">Jenis Krupuk</th>
-                  <th className="px-4 py-3 text-left">Harga / Pcs</th>
-                  <th className="px-4 py-3 text-left">Total Pembelian</th>
-                  <th className="px-4 py-3 text-left">Total Harga</th>
-                  <th className="px-4 py-3 text-left">Tempat Transaksi</th>
-                  <th className="px-4 py-3 text-left">Pedagang</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">No</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Nama Pelanggan</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Jenis Kelamin</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Tanggal</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Jenis Krupuk</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Harga / Pcs</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Total Pembelian</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Total Harga</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Tempat Transaksi</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Pedagang</th>
                   <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
@@ -181,21 +187,21 @@ const TransaksiPenjualan = () => {
                     const tanggalFormatted = `${tglObj.getDate()}/${tglObj.getMonth() + 1}/${tglObj.getFullYear()}`;
 
                     return (
-                      <tr key={item.id_transaksi} className="border-t border-[#E5E5EA] hover:bg-slate-50 transition">
+                      <tr key={item.id_transaksi} className="hover:bg-gray-50 transition">
                         {/* Penomoran otomatis sesuai halaman */}
-                        <td className="px-4 py-3">{(pagination.current_page - 1) * pagination.per_page + i + 1}</td>
-                        <td className="px-4 py-3 font-medium text-slate-800">{item.pelanggan?.nama_pelanggan || "-"}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{item.pelanggan?.jenis_kelamin || "-"}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{tanggalFormatted}</td>
-                        <td className="px-4 py-3 font-medium text-blue-900">{namaKrupuk}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">{hargaSatuPcs}</td>
-                        <td className="px-4 py-3 text-center">{item.total_pembelian || 0}</td>
-                        <td className="px-4 py-3 font-semibold text-[#1E3A5F] whitespace-nowrap">
+                        <td className="border border-gray-300 px-4 py-3 text-center">{(pagination.current_page - 1) * pagination.per_page + i + 1}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">{item.pelanggan?.nama_pelanggan || "-"}</td>
+                       <td className="border border-gray-300 px-4 py-3 text-center">{item.pelanggan?.jenis_kelamin || "-"}</td>
+                       <td className="border border-gray-300 px-4 py-3 text-center">{tanggalFormatted}</td>
+                       <td className="border border-gray-300 px-4 py-3 text-center">{namaKrupuk}</td>
+                       <td className="border border-gray-300 px-4 py-3 text-center">{hargaSatuPcs}</td>
+                       <td className="border border-gray-300 px-4 py-3 text-center">{item.total_pembelian || 0}</td>
+                       <td className="border border-gray-300 px-4 py-3 text-center">
                           Rp {parseFloat(item.total_harga).toLocaleString("id-ID")}
                         </td>
-                        <td className="px-4 py-3">{item.tempat_transaksi || "-"}</td>
-                        <td className="px-4 py-3">{item.pedagang || "-"}</td>
-                        <td className="px-4 py-3">
+                        <td className="border border-gray-300 px-4 py-3 text-center">{item.tempat_transaksi || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">{item.pedagang || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
                           <div className="flex justify-center gap-2">
                             <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200 transition" />
                             <img src={editIcon} alt="edit" onClick={() => navigate(`/admin/transaksi/edit/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-yellow-100 cursor-pointer hover:bg-yellow-200 transition" />
