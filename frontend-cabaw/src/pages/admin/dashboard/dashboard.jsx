@@ -1,32 +1,63 @@
 import { SidebarNavigationSection } from "./sidebarnavigation";
 import { AnnualProfitChartSection } from "./AnnualProfitChartSection";
 import { SummaryCardsSection } from "./SummaryCardsSection";
-import { BestProductSection } from "./BestProductSection";
+import BestProductSection from "./BestProductSection";
 import { LoyalCustomerSection } from "./LoyalCustomerSection";
-import NavbarAdmin from "./navbar_admin"; 
+import { DistribusiKategoriPelanggan } from "./DistribusiKategoriPelanggan";
+import NavbarAdmin from "./navbar_admin";
 import TampilanElemen from "./TampilanElemen";
 
 export default function Dashboard() {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-[#F8FAFC]">
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Navbar - Berada di paling atas content */}
+
+        {/* Navbar */}
         <NavbarAdmin />
 
-        {/* 1. Tambahkan pembungkus pt-16 agar tidak tertutup Navbar Fixed */}
-        <div className="pt-16"> 
+        {/* Header */}
+        <div className="pt-16">
           <TampilanElemen />
-        </div> 
+        </div>
 
-        {/* 2. Hapus pt-28 karena sudah ada pt-16 di atas */}
-        <main className="p-8 space-y-8"> 
-          {/* Top Summary Section */}
+        <main className="p-8 space-y-6">
+
+          {/* SUMMARY */}
           <SummaryCardsSection />
 
-          {/* Bottom Section: Loyal Customers */}
-          <LoyalCustomerSection />
+          {/* CONTENT */}
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+
+            {/* ================= LEFT ================= */}
+            <div className="xl:col-span-3 flex flex-col gap-6">
+
+              {/* CHART */}
+              <div className="h-fit">
+                <AnnualProfitChartSection />
+              </div>
+
+              {/* BEST PRODUCT */}
+              <div>
+                <BestProductSection />
+              </div>
+
+            </div>
+
+            {/* ================= RIGHT ================= */}
+            <div className="xl:col-span-2 flex flex-col gap-6">
+
+              {/* Loyal Customer */}
+              <LoyalCustomerSection />
+
+              {/* Distribusi */}
+              <DistribusiKategoriPelanggan />
+
+            </div>
+
+          </div>
+
         </main>
       </div>
     </div>

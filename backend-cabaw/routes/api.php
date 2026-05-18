@@ -24,6 +24,7 @@ Route::post('/transaksi', [TransaksiController::class, 'store']);
 Route::get('/transaksi/{id}', [TransaksiController::class, 'show']);
 Route::put('/transaksi/{id}', [TransaksiController::class, 'update']);
 Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroy']);
+Route::get('/omset-tahunan', [TransaksiController::class, 'omsetTahunan']);
 
 // Kriteria (Sudah disatukan)
 Route::get('/kriteria', [KriteriaController::class, 'index']);

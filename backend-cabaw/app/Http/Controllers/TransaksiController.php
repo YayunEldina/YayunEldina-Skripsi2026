@@ -386,4 +386,26 @@ if ($alternatif) {
 
     return response()->json($data);
 }
+
+/**
+ * API OMSET TAHUNAN DASHBOARD
+ */
+public function omsetTahunan()
+{
+    $data = [];
+
+    for ($tahun = 2021; $tahun <= 2025; $tahun++) {
+
+        $total = \App\Models\Transaksi::whereYear('tanggal', $tahun)
+            ->sum('total_harga');
+
+        $data[] = [
+            'tahun' => $tahun,
+            'total_omset' => $total
+        ];
+    }
+
+    return response()->json($data);
+}
+
 }

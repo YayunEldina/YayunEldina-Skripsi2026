@@ -249,9 +249,9 @@ class PerhitunganController extends Controller
                 // =====================================
                 // PEMBOBOTAN MATRIKS
                 // =====================================
-                $v0 = round($r[$kode][0] * $bobotNormal[0], 6);
-                $v1 = round($r[$kode][1] * $bobotNormal[1], 6);
-                $v2 = round($r[$kode][2] * $bobotNormal[2], 6);
+                $v0 = round($r[$kode][0] * $bobotNormal[0], 5);
+                $v1 = round($r[$kode][1] * $bobotNormal[1], 5);
+                $v2 = round($r[$kode][2] * $bobotNormal[2], 5);
 
                 $dPlus += sqrt((1/3)*(pow($v0-1,2)+pow($v1-1,2)+pow($v2-1,2)));
                 $dMin  += sqrt((1/3)*(pow($v0-0,2)+pow($v1-0,2)+pow($v2-0,2)));
