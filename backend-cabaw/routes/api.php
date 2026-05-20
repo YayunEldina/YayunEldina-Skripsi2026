@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\KriteriaController;
@@ -21,11 +22,12 @@ Route::get('/alternatif/list', [AlternatifController::class, 'getListDropdown'])
 // Transaksi
 Route::get('/transaksi', [TransaksiController::class, 'index']);
 Route::post('/transaksi', [TransaksiController::class, 'store']);
+Route::get('/transaksi/cek-bulan', [TransaksiController::class, 'cekBulan']);
 Route::get('/transaksi/{id}', [TransaksiController::class, 'show']);
 Route::put('/transaksi/{id}', [TransaksiController::class, 'update']);
 Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroy']);
-Route::get('/omset-tahunan', [TransaksiController::class, 'omsetTahunan']);
 
+Route::get('/omset-tahunan', [TransaksiController::class, 'omsetTahunan']);
 // Kriteria (Sudah disatukan)
 Route::get('/kriteria', [KriteriaController::class, 'index']);
 Route::post('/kriteria', [KriteriaController::class, 'store']);

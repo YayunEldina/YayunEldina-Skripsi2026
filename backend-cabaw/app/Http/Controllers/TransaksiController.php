@@ -60,19 +60,34 @@ class TransaksiController extends Controller
     $pedagang = trim($request->pedagang);
     $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
 
-            // =========================
-            // 1. PELANGGAN
-            // =========================
-            $pelanggan = Pelanggan::firstOrCreate(
-                ['nama_pelanggan' => $request->nama_pelanggan],
-                [
-                    'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
-                    'password' => bcrypt('123456'),
-                    'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
-                    'alamat' => '-',
-                    'no_telepon' => '0'
-                ]
-            );
+           // =========================
+// 1. PELANGGAN
+// =========================
+
+$pelanggan = null;
+
+// 🔥 jika pelanggan lama → ambil dari alternatif
+if ($request->id_alternatif) {
+
+    $alternatifLama = Alternatif::find($request->id_alternatif);
+
+    if ($alternatifLama) {
+        $pelanggan = Pelanggan::find($alternatifLama->id_pelanggan);
+    }
+}
+
+// 🔥 jika pelanggan baru → buat pelanggan baru
+if (!$pelanggan) {
+
+    $pelanggan = Pelanggan::create([
+        'nama_pelanggan' => $request->nama_pelanggan,
+        'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
+        'password' => bcrypt('123456'),
+        'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
+        'alamat' => '-',
+        'no_telepon' => '0'
+    ]);
+}
 
             // =========================
             // 2. ALTERNATIF SPK
@@ -82,14 +97,13 @@ class TransaksiController extends Controller
                 ->exists();
 
             if (!$exists) {
-                $lastAlt = Alternatif::orderByDesc('id_alternatif')->first();
-                $lastNum = $lastAlt ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif)) : 0;
+                $kodeBaru = Alternatif::max('id_alternatif') + 1;
 
                 Alternatif::create([
-                    'id_pelanggan' => $pelanggan->id_pelanggan,
+                    'id_pelanggan'    => $pelanggan->id_pelanggan,
                     'nama_alternatif' => $pelanggan->nama_pelanggan,
-                    'kode_alternatif' => ($lastNum + 1),
-                    'pedagang' => $pedagang
+                    'kode_alternatif' => $kodeBaru,
+                    'pedagang'        => $pedagang
                 ]);
             }
 
@@ -99,12 +113,17 @@ class TransaksiController extends Controller
             $tahunTransaksi = date('Y', strtotime($request->tanggal));
             $tahunAmbil = $tahunTransaksi - 1;
 
-            $dataDiskon = DB::table('hasil_perhitungan')
-            ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
-            ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
-            ->where('tahun', $tahunAmbil)
-            ->first();
+            $dataDiskon = null;
 
+            // hanya pelanggan lama yang boleh ambil diskon SPK
+            if ($request->id_alternatif) {
+            
+                $dataDiskon = DB::table('hasil_perhitungan')
+                    ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
+                    ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
+                    ->where('tahun', $tahunAmbil)
+                    ->first();
+            }
             // 🔥 LOG DEBUG
             \Log::info("CEK DISKON SPK", [
                 'nama' => $request->nama_pelanggan,
@@ -242,17 +261,13 @@ if ($alternatif) {
 } else {
 
     // kalau benar-benar belum ada baru create
-    $lastAlt = Alternatif::orderByDesc('id_alternatif')->first();
-
-    $lastNum = $lastAlt
-        ? intval(preg_replace('/[^0-9]/', '', $lastAlt->kode_alternatif))
-        : 0;
+    $kodeBaru = Alternatif::max('id_alternatif') + 1;
 
     Alternatif::create([
         'id_pelanggan'    => $pelanggan->id_pelanggan,
-        'nama_alternatif' => $request->nama_pelanggan,
-        'kode_alternatif' => ($lastNum + 1),
-        'pedagang'        => $pedagang,
+        'nama_alternatif' => $pelanggan->nama_pelanggan,
+        'kode_alternatif' => $kodeBaru,
+        'pedagang'        => $pedagang
     ]);
 }
             // =========================
@@ -261,12 +276,17 @@ if ($alternatif) {
             $tahunTransaksi = date('Y', strtotime($request->tanggal));
             $tahunAmbil     = $tahunTransaksi - 1;
 
-            // ✅ pakai $pedagang (sudah lowercase & trim), bukan $request->pedagang
-            $dataDiskon = DB::table('hasil_perhitungan')
-            ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
-            ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
-            ->where('tahun', $tahunAmbil)
-            ->first();
+            $dataDiskon = null;
+
+            // hanya pelanggan lama yang boleh ambil diskon SPK
+            if ($request->id_alternatif) {
+
+                $dataDiskon = DB::table('hasil_perhitungan')
+                    ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
+                    ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
+                    ->where('tahun', $tahunAmbil)
+                    ->first();
+            }
 
             $diskon = $dataDiskon ? (float) $dataDiskon->diskon : 0;
 
@@ -344,6 +364,7 @@ if ($alternatif) {
     $tahun = $request->query('tahun', date('Y'));
 
     $data = DB::table('transaksi as t')
+
         ->join('pelanggan as p', 't.id_pelanggan', '=', 'p.id_pelanggan')
 
         ->whereBetween('t.tanggal', [
@@ -354,33 +375,19 @@ if ($alternatif) {
         ->select(
             DB::raw('MONTH(t.tanggal) as bulan'),
 
-            't.id_pelanggan',
+            't.id_transaksi',
+
             'p.nama_pelanggan',
             't.pedagang',
 
-            DB::raw('COUNT(*) as total_transaksi'),
-            DB::raw('SUM(t.total_pembelian) as total_pembelian'),
-            DB::raw('SUM(t.total_harga) as total_harga'),
+            't.total_pembelian',
+            't.total_harga',
+            't.diskon',
 
-            // rata-rata diskon %
-            DB::raw('AVG(t.diskon) as rata_rata_diskon'),
-
-            // total nominal diskon rupiah
-            DB::raw('SUM((t.total_harga * t.diskon) / 100) as total_diskon')
+            DB::raw('((t.total_harga * t.diskon) / 100) as total_diskon')
         )
 
-        ->groupBy(
-            DB::raw('MONTH(t.tanggal)'),
-
-            't.id_pelanggan',
-            'p.nama_pelanggan',
-            't.pedagang'
-        )
-
-        ->havingRaw('SUM(t.total_harga) > 0')
-
-        ->orderBy('bulan', 'asc')
-        ->orderByDesc('total_diskon')
+        ->orderBy('t.tanggal', 'asc')
 
         ->get();
 

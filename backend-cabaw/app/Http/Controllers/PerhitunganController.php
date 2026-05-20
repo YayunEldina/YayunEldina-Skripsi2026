@@ -32,10 +32,9 @@ class PerhitunganController extends Controller
         ->get();
 
         foreach ($pelangganDariTransaksi as $p) {
-
             $pedagang = strtolower(trim($p->pedagang));
         
-            // 🔥 CEK KOMBINASI (INI KUNCINYA)
+            // CEK KOMBINASI BERDASARKAN ID PELANGGAN DAN TEXT PEDAGANG
             $exists = Alternatif::where('id_pelanggan', $p->id_pelanggan)
                 ->where('pedagang', $pedagang)
                 ->exists();
@@ -59,10 +58,6 @@ class PerhitunganController extends Controller
         // ========================================================
         $kriteriasObj = Kriteria::all();
         $kriteriasByKode = $kriteriasObj->keyBy('kode_kriteria');
-        
-        // =====================================
-        // NORMALISASI TOTAL BOBOT
-        // =====================================
         $totalBobot = $kriteriasObj->sum('bobot');
 
         // ========================================================
@@ -72,13 +67,13 @@ class PerhitunganController extends Controller
         ->whereYear('tanggal', $tahun)
         ->select(
             'id_pelanggan',
-            'pedagang', // 🔥 WAJIB ADA
+            'pedagang', 
             DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'),
             DB::raw('COALESCE(SUM(total_harga), 0) as c2'),
             DB::raw('COUNT(id_transaksi) as c3'),
             DB::raw('COALESCE(AVG(total_pembelian), 0) as c4')
         )
-        ->groupBy('id_pelanggan', 'pedagang') // 🔥 WAJIB
+        ->groupBy('id_pelanggan', 'pedagang') 
         ->get()
         ->keyBy(function($item){
             return $item->id_pelanggan . '_' . strtolower(trim($item->pedagang));
@@ -121,52 +116,40 @@ class PerhitunganController extends Controller
         }
 
         // ========================================================
-        // 🔥 TAMBAHAN: MATRIKS FUZZY
+        // MATRIKS FUZZY
         // ========================================================
         $matriksFuzzy = [];
-
         foreach ($alternatifs as $alt) {
             $row = ['nama' => $alt->nama_alternatif];
-
             foreach ($kriteriasObj as $k) {
                 $kode = strtoupper($k->kode_kriteria);
-
                 $nilai = PenilaianKriteria::where([
                     'id_alternatif' => $alt->id_alternatif,
                     'id_kriteria' => $k->id_kriteria
                 ])->value('nilai_mentah') ?? 0;
 
                 $method = "konversiFuzzy" . $kode;
-                $fuzzy = method_exists($this, $method)
-                    ? $this->$method($nilai)
-                    : [0,0.25,0.5];
-
+                $fuzzy = method_exists($this, $method) ? $this->$method($nilai) : [0,0.25,0.5];
                 $row[$kode] = "(" . implode(",", $fuzzy) . ")";
             }
-
             $matriksFuzzy[] = $row;
         }
 
         // ========================================================
-        // 🔥 TAMBAHAN: MATRIKS R
+        // MATRIKS R
         // ========================================================
         $matriksR = [];
-
         foreach ($alternatifs as $alt) {
             $row = ['nama' => $alt->nama_alternatif];
-
             foreach ($kriteriasObj as $k) {
                 $kode = strtoupper($k->kode_kriteria);
-
                 $nilai = PenilaianKriteria::where([
                     'id_alternatif' => $alt->id_alternatif,
                     'id_kriteria' => $k->id_kriteria
                 ])->value('nilai_mentah') ?? 0;
 
                 $method = "konversiFuzzy" . $kode;
-                $f = method_exists($this, $method)
-                    ? $this->$method($nilai)
-                    : [0,0.25,0.5];
+                $f = method_exists($this, $method) ? $this->$method($nilai) : [0,0.25,0.5];
 
                 if ($k->atribut == 'Benefit') {
                     $r = $f;
@@ -178,10 +161,8 @@ class PerhitunganController extends Controller
                         $f[0] > 0 ? $l_min / $f[0] : 0
                     ];
                 }
-
                 $row[$kode] = "(" . implode(",", array_map(fn($v)=>round($v,5), $r)) . ")";
             }
-
             $matriksR[] = $row;
         }
 
@@ -227,28 +208,15 @@ class PerhitunganController extends Controller
 
             foreach ($kriteriasObj as $k) {
                 $kode = strtoupper($k->kode_kriteria);
-                // =====================================
-                // AMBIL BOBOT FUZZY
-                // =====================================
                 $bobotArr = $this->parseFuzzy($k->bobot_fuzzy);
-
-                // =====================================
-                // NORMALISASI BOBOT
-                // =====================================
                 $normalBobot = $k->bobot / $totalBobot;
 
-                // =====================================
-                // BOBOT FUZZY SETELAH DINORMALISASI
-                // =====================================
                 $bobotNormal = [
                     $bobotArr[0] * $normalBobot,
                     $bobotArr[1] * $normalBobot,
                     $bobotArr[2] * $normalBobot
                 ];
 
-                // =====================================
-                // PEMBOBOTAN MATRIKS
-                // =====================================
                 $v0 = round($r[$kode][0] * $bobotNormal[0], 6);
                 $v1 = round($r[$kode][1] * $bobotNormal[1], 6);
                 $v2 = round($r[$kode][2] * $bobotNormal[2], 6);
@@ -260,6 +228,7 @@ class PerhitunganController extends Controller
             $nilaiV = ($dPlus + $dMin) == 0 ? 0 : $dMin / ($dPlus + $dMin);
 
             $hasilAkhir[] = [
+                'id_alternatif' => $alt->id_alternatif, // 🔥 REVISI: simpan ID Alternatif asli ke array hasil akhir
                 'nama' => $alt->nama_alternatif,
                 'pedagang' => $alt->pedagang ?? '-',
                 'kode' => $alt->kode_alternatif,
@@ -275,15 +244,8 @@ class PerhitunganController extends Controller
         usort($hasilAkhir, fn($a, $b) => $b['nilai_v'] <=> $a['nilai_v']);
 
         $totalN = count($hasilAkhir);
-
-        // Rumus:
-        // K = ceil(p × N)
-
-        // 10% pelanggan teratas
         $kuotaTinggi = ceil(0.10 * $totalN);
-        // 30% pelanggan teratas
         $kuotaSedang = ceil(0.30 * $totalN);
-        // 60% pelanggan teratas
         $kuotaRendah = ceil(0.60 * $totalN);
 
         foreach ($hasilAkhir as $i => $item) {
@@ -304,35 +266,34 @@ class PerhitunganController extends Controller
             }
         }
 
-        // 🔥 1. Semua perhitungan selesai
-// (normalisasi, solusi ideal, nilai V, ranking, diskon, dll)
+        // ========================================================
+        // 🔥 REVISI UTAMA: SIMPAN ID ALTERNATIF KE DATABASE
+        // ========================================================
+        DB::table('hasil_perhitungan')->where('tahun', $tahun)->delete();
 
-// 🔥 2. SIMPAN KE DATABASE
-DB::table('hasil_perhitungan')->where('tahun', $tahun)->delete();
+        foreach ($hasilAkhir as $index => $item) {
+            DB::table('hasil_perhitungan')->insert([
+                'id_alternatif' => $item['id_alternatif'], // 🔥 REVISI: Masukkan ID unik ini ke database hasil_perhitungan
+                'nama' => strtolower(trim($item['nama'])),
+                'pedagang' => strtolower(trim($item['pedagang'] ?? '-')),
+                'nilai_v' => $item['nilai_v'],
+                'ranking' => $index + 1,
+                'diskon' => $item['diskon'],
+                'prioritas' => $item['status_prioritas'],
+                'tahun' => $tahun,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
-foreach ($hasilAkhir as $index => $item) {
-    DB::table('hasil_perhitungan')->insert([
-        'nama' => strtolower(trim($item['nama'])),
-        'pedagang' => strtolower(trim($item['pedagang'] ?? '-')),
-        'nilai_v' => $item['nilai_v'],
-        'ranking' => $index + 1,
-        'diskon' => $item['diskon'],
-        'prioritas' => $item['status_prioritas'],
-        'tahun' => $tahun,
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
-}
-
-// ✅ RETURN FINAL (INI SAJA)
-return response()->json([
-    'status' => true,
-    'tahun' => $tahun,
-    'total_pelanggan' => $totalN,
-    'hasil_akhir' => $hasilAkhir,
-    'matriks_fuzzy' => $matriksFuzzy,
-    'matriks_r' => $matriksR
-]);
+        return response()->json([
+            'status' => true,
+            'tahun' => $tahun,
+            'total_pelanggan' => $totalN,
+            'hasil_akhir' => $hasilAkhir,
+            'matriks_fuzzy' => $matriksFuzzy,
+            'matriks_r' => $matriksR
+        ]);
     }
 
     // ================= HELPER =================

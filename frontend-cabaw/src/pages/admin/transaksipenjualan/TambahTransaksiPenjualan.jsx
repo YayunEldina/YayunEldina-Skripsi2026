@@ -31,24 +31,20 @@ const TambahTransaksiPenjualan = () => {
   const [diskon, setDiskon] = useState(0);
   const [prioritas, setPrioritas] = useState("-");
   const [alternatifList, setAlternatifList] = useState([]);
-const [selectedAlternatif, setSelectedAlternatif] = useState(null);
-const normalize = (val) => (val || "").toString().toLowerCase().trim();
-const [showDropdown, setShowDropdown] = useState(false);
-const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
-const [tempNewName, setTempNewName] = useState("");
-const dropdownRef = useRef(null);
-const [isNewFromDropdown, setIsNewFromDropdown] = useState(false);
+  const [selectedAlternatif, setSelectedAlternatif] = useState(null);
+  const normalize = (val) => (val || "").toString().toLowerCase().trim();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
+  const [tempNewName, setTempNewName] = useState("");
+  const dropdownRef = useRef(null);
   
-  // Tambahkan state loading di sini
+  // State ini krusial untuk menandai pelanggan baru murni
+  const [isNewFromDropdown, setIsNewFromDropdown] = useState(false);
   const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
 
   useEffect(() => {
     axios.get("http://127.0.0.1:8000/api/alternatif/list")
       .then(res => {
-
-        console.log("DATA API:", res.data);
-console.log("NAMA DIPILIH:", namaPelanggan);
-console.log("PEDAGANG DIPILIH:", pedagang);
         setAlternatifList(res.data);
       })
       .catch(() => {
@@ -69,12 +65,21 @@ console.log("PEDAGANG DIPILIH:", pedagang);
     { name: "Keong", img: Keong, kategori: "Gurih" },
   ];
 
+  // 🛠️ REVISI DISINI: Logika penentuan diskon diperketat
   useEffect(() => {
-    // Cek Pelanggan Baru
-    if (namaPelanggan === "Pelanggan Baru") {
+    // 1. Jika ditandai sebagai pelanggan baru murni, langsung set diskon 0
+    if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru") {
       setDiskon(0);
       setPrioritas("Pelanggan Baru");
       setIsLoadingDiskon(false);
+      return;
+    }
+
+    // 2. Jika nama pelanggan diketik manual dan tidak mengklik dropdown (tidak ada selectedAlternatif),
+    //    maka dianggap sebagai pelanggan baru biar namanya sama tidak konflik diskonnya.
+    if (!selectedAlternatif) {
+      setDiskon(0);
+      setPrioritas("Pelanggan Baru");
       return;
     }
   
@@ -93,9 +98,11 @@ console.log("PEDAGANG DIPILIH:", pedagang);
       .then(res => {
         const data = res.data;
   
+        // Memastikan pencocokan data menggunakan ID alternatif yang unik, bukan sekadar string nama
         const found = data.find(item =>
           normalize(item.nama) === normalize(namaPelanggan) &&
-          normalize(item.pedagang) === normalize(pedagang)
+          normalize(item.pedagang) === normalize(pedagang) &&
+          item.id_alternatif === selectedAlternatif?.id_alternatif
         );
   
         if (found) {
@@ -116,18 +123,15 @@ console.log("PEDAGANG DIPILIH:", pedagang);
     }, 500);
   
     return () => clearTimeout(delay);
-  }, [namaPelanggan, pedagang]);
+  }, [namaPelanggan, pedagang, selectedAlternatif, isNewFromDropdown]);
 
-  // 👇 INI TAMBAHAN BARU
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
     };
-  
     document.addEventListener("click", handleClickOutside);
-  
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
@@ -167,11 +171,6 @@ console.log("PEDAGANG DIPILIH:", pedagang);
       return;
     }
 
-    if (diskon === 0 && prioritas !== "Pelanggan Baru") {
-      alert("Diskon belum siap, tunggu sebentar...");
-      return;
-    }
-
     const payload = {
       nama_pelanggan: namaPelanggan,
       jenis_kelamin: jenisKelamin,
@@ -179,31 +178,26 @@ console.log("PEDAGANG DIPILIH:", pedagang);
       tempat_transaksi: tempatTransaksi,
       pedagang: pedagang.trim() || "-", 
       total_pembelian: totalPembelian,
-      total_harga: totalHarga, // ✅ BENAR
+      total_harga: totalHarga,
       harga_per_pcs: 2500,
       diskon: diskon,
+      // Menyertakan ID alternatif (jika pelanggan lama) atau null (jika pelanggan baru murni)
+      id_alternatif: selectedAlternatif ? selectedAlternatif.id_alternatif : null,
+      is_pelanggan_baru: !selectedAlternatif,
       items: selectedKerupuk.map((item) => ({
         nama: item.name,
         jumlah: jumlah[item.name],
       })),
     };
 
-    console.log("=== DEBUG SIMPAN ===");
-console.log("Diskon:", diskon);
-console.log("Prioritas:", prioritas);
-console.log("Loading:", isLoadingDiskon);
-console.log("Payload:", payload);
-
-try {
-  await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
-
-  alert("Transaksi berhasil!");
-  navigate("/admin/transaksi");
-
-} catch (error) {
-  console.log("ERROR:", error.response?.data);
-  alert("Gagal menyimpan transaksi");
-}
+    try {
+      await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
+      alert("Transaksi berhasil!");
+      navigate("/admin/transaksi");
+    } catch (error) {
+      console.log("ERROR:", error.response?.data);
+      alert("Gagal menyimpan transaksi");
+    }
   };
 
   const keyword = namaPelanggan.toLowerCase();
@@ -260,101 +254,96 @@ try {
                 Tambah Transaksi Penjualan
               </div>
               <div className="space-y-4 mb-4">
-              <div className="flex items-center gap-4">
-  <label className="w-44 text-base font-medium text-gray-500">
-    Nama Pelanggan
-  </label>
+                <div className="flex items-center gap-4">
+                  <label className="w-44 text-base font-medium text-gray-500">
+                    Nama Pelanggan
+                  </label>
 
-   {/* SEARCH + DROPDOWN */}
-  <div className="flex-1 relative" ref={dropdownRef}>
-  <input
-  type="text"
-  value={namaPelanggan}
-  onChange={(e) => {
-    setNamaPelanggan(e.target.value);
-    setShowDropdown(true);
-    setSelectedAlternatif(null);
-  }}
-  onFocus={() => setShowDropdown(true)}
-  placeholder="Cari / pilih pelanggan..."
-  className="w-full border rounded-lg px-3 py-2"
-/>
+                  {/* SEARCH + DROPDOWN */}
+                  <div className="flex-1 relative" ref={dropdownRef}>
+                    <input
+                      type="text"
+                      value={namaPelanggan}
+                      onChange={(e) => {
+                        setNamaPelanggan(e.target.value);
+                        setShowDropdown(true);
+                        setSelectedAlternatif(null);
+                        setIsNewFromDropdown(false); // mereset status penanda
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                      placeholder="Cari / pilih pelanggan..."
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
 
-    {showDropdown && (
-      <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+                    {showDropdown && (
+                      <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+                        {/* LIST EXISTING */}
+                        {filteredAlternatif.map((alt) => (
+                          <div
+                            key={alt.id_alternatif}
+                            onClick={() => {
+                              setSelectedAlternatif(alt);
+                              setNamaPelanggan(alt.nama_alternatif);
+                              setPedagang(alt.pedagang);
+                              setIsNewFromDropdown(false); 
+                              setShowDropdown(false);
+                            }}
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                          >
+                            {alt.nama_alternatif} - {alt.pedagang}
+                          </div>
+                        ))}
 
-        {/* LIST EXISTING */}
-        {filteredAlternatif.map((alt) => (
-  <div
-    key={alt.id_alternatif}
-    onClick={() => {
-      setSelectedAlternatif(alt);
-      setNamaPelanggan(alt.nama_alternatif);
-      setPedagang(alt.pedagang);
-      setIsNewFromDropdown(false); // ✅ WAJIB
-      setShowDropdown(false);
-    }}
-    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-  >
-    {alt.nama_alternatif} - {alt.pedagang}
-  </div>
-))}
+                        {filteredAlternatif.length === 0 && (
+                          <div className="px-3 py-2 text-gray-400 text-sm">
+                            Tidak ditemukan
+                          </div>
+                        )}
 
-            {/* 👇 TAMBAHKAN DI SINI */}
-    {filteredAlternatif.length === 0 && (
-      <div className="px-3 py-2 text-gray-400 text-sm">
-        Tidak ditemukan
-      </div>
-    )}
+                        <div className="border-t mt-2 pt-2 px-3">
+                          {/* TAMBAH PELANGGAN BARU */}
+                          {!isAddingNewCustomer ? (
+                            <button
+                              type="button"
+                              onMouseDown={() => setIsAddingNewCustomer(true)}
+                              className="text-blue-600 text-sm font-semibold mb-2"
+                            >
+                              + Tambah pelanggan baru
+                            </button>
+                          ) : (
+                            <div className="flex flex-col gap-2 pb-2">
+                              <input
+                                value={tempNewName}
+                                onChange={(e) => setTempNewName(e.target.value)}
+                                placeholder="Nama pelanggan baru..."
+                                className="w-full border px-2 py-1 rounded text-sm"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                className="bg-blue-600 text-white py-1 px-2 rounded text-sm w-full"
+                                onClick={() => {
+                                  if (!tempNewName.trim()) return;
+                                  const newName = tempNewName.trim();
+                                  setNamaPelanggan(newName);
+                                  setPedagang(""); // Biarkan kosong agar diisi pedagang baru
+                                  setSelectedAlternatif(null);
+                                  setIsNewFromDropdown(true); // Menandai ini sebagai pelanggan baru murni
+                                  setTempNewName("");
+                                  setIsAddingNewCustomer(false);
+                                  setShowDropdown(false);
+                                }}
+                              >
+                                Gunakan Nama Baru
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-        {/* DIVIDER */}
-        <div className="border-t mt-2 pt-2 px-3">
-
-          {/* TAMBAH PELANGGAN BARU */}
-          {!isAddingNewCustomer ? (
-            <button
-              onMouseDown={() => setIsAddingNewCustomer(true)}
-              className="text-blue-600 text-sm font-semibold"
-            >
-              + Tambah pelanggan baru
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <input
-                value={tempNewName}
-                onChange={(e) => setTempNewName(e.target.value)}
-                placeholder="Nama pelanggan baru..."
-                className="w-full border px-2 py-1 rounded text-sm"
-                autoFocus
-              />
-
-<button
-  className="bg-blue-600 text-white px-2 rounded text-sm"
-  onClick={() => {
-    if (!tempNewName.trim()) return;
-  
-    const newName = tempNewName.trim();
-  
-    setNamaPelanggan(newName);
-    setPedagang("-");
-    setSelectedAlternatif(null);
-    setIsNewFromDropdown(true); // ✅ penting
-  
-    setTempNewName("");
-    setIsAddingNewCustomer(false);
-    setShowDropdown(false);
-  }}
->
-  Simpan
-</button>
-            </div>
-          )}
-
-        </div>
-      </div>
-    )}
-  </div>
-</div>
                 <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Jenis Kelamin</label>
                   <select value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700">
@@ -374,15 +363,15 @@ try {
                 <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Pedagang</label>
                   <input
-  type="text"
-  value={pedagang}
-  onChange={(e) => setPedagang(e.target.value)}
-  readOnly={!!selectedAlternatif} 
-  placeholder="Masukkan nama pedagang"
-  className={`flex-1 border rounded-lg px-3 py-2 ${
-    selectedAlternatif ? "bg-gray-100" : "bg-white"
-  }`}
-/>
+                    type="text"
+                    value={pedagang}
+                    onChange={(e) => setPedagang(e.target.value)}
+                    readOnly={!!selectedAlternatif} 
+                    placeholder="Masukkan nama pedagang"
+                    className={`flex-1 border rounded-lg px-3 py-2 ${
+                      selectedAlternatif ? "bg-gray-100" : "bg-white"
+                    }`}
+                  />
                 </div>
               </div>
 
@@ -419,7 +408,6 @@ try {
                   <p className="text-2xl font-bold text-[#1E3A5F] mt-1">Rp {totalHarga.toLocaleString("id-ID")}</p>
 
                   <div className="mt-3">
-                    {/* IMPLEMENTASI LOADING UI DI SINI */}
                     <span className={`px-2 py-1 rounded text-sm font-medium ${
                         isLoadingDiskon ? "bg-gray-100 text-gray-400 animate-pulse" : 
                         prioritas === "Prioritas Tinggi" ? "bg-green-100 text-green-700" :
@@ -449,6 +437,7 @@ try {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
