@@ -38,7 +38,6 @@ const TambahTransaksiPenjualan = () => {
   const [tempNewName, setTempNewName] = useState("");
   const dropdownRef = useRef(null);
   
-  // State ini krusial untuk menandai pelanggan baru murni
   const [isNewFromDropdown, setIsNewFromDropdown] = useState(false);
   const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
 
@@ -65,65 +64,88 @@ const TambahTransaksiPenjualan = () => {
     { name: "Keong", img: Keong, kategori: "Gurih" },
   ];
 
-  // 🛠️ REVISI DISINI: Logika penentuan diskon diperketat
   useEffect(() => {
-    // 1. Jika ditandai sebagai pelanggan baru murni, langsung set diskon 0
-    if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru") {
+    if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru" || !selectedAlternatif) {
       setDiskon(0);
       setPrioritas("Pelanggan Baru");
       setIsLoadingDiskon(false);
       return;
     }
 
-    // 2. Jika nama pelanggan diketik manual dan tidak mengklik dropdown (tidak ada selectedAlternatif),
-    //    maka dianggap sebagai pelanggan baru biar namanya sama tidak konflik diskonnya.
-    if (!selectedAlternatif) {
-      setDiskon(0);
-      setPrioritas("Pelanggan Baru");
-      return;
-    }
-  
     if (!namaPelanggan || !pedagang) {
       setDiskon(0);
       setPrioritas("-");
       return;
     }
-  
+
+    if (!tanggal) {
+      setDiskon(0);
+      setPrioritas("Pilih Tanggal Dahulu");
+      return;
+    }
+
     setIsLoadingDiskon(true);
-  
-    const delay = setTimeout(() => {
-      axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
-        params: { tahun: new Date().getFullYear() - 1 }
-      })
-      .then(res => {
-        const data = res.data;
-  
-        // Memastikan pencocokan data menggunakan ID alternatif yang unik, bukan sekadar string nama
-        const found = data.find(item =>
+
+    const delay = setTimeout(async () => {
+      try {
+        const tanggalPilihan = new Date(tanggal);
+        const tahunPilihan = tanggalPilihan.getFullYear();
+        const bulanPilihan = tanggalPilihan.getMonth() + 1; 
+        
+        const tahunSumber = (tahunPilihan === 2026 && bulanPilihan === 5) ? 2025 : (bulanPilihan === 1 ? tahunPilihan - 1 : tahunPilihan);
+
+        const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
+        
+        const resKuota = await axios.get("http://127.0.0.1:8000/api/transaksi/cek-kuota", {
+          params: {
+            id_pelanggan: idAlternatifKirim,
+            pedagang: pedagang.trim(),
+            tanggal: tanggal
+          }
+        });
+
+        console.log("Respons Cek Kuota dari Backend:", resKuota.data);
+
+        const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
+          params: { tahun: tahunSumber }
+        });
+        const dataSPK = resSPK.data || [];
+
+        const found = dataSPK.find(item =>
+          (item.id_alternatif === idAlternatifKirim || item.id_pelanggan === idAlternatifKirim) &&
           normalize(item.nama) === normalize(namaPelanggan) &&
-          normalize(item.pedagang) === normalize(pedagang) &&
-          item.id_alternatif === selectedAlternatif?.id_alternatif
+          normalize(item.pedagang) === normalize(pedagang)
         );
-  
-        if (found) {
-          setDiskon(found.diskon);
-          setPrioritas(found.prioritas);
-        } else {
+
+        if (resKuota.data && resKuota.data.sudah_transaksi === true) {
           setDiskon(0);
-          setPrioritas("Pelanggan Baru");
+          if (found) {
+            setPrioritas(`${found.prioritas} (Kuota Bulan Ini Habis)`);
+          } else {
+            setPrioritas("Pelanggan Lama (Kuota Bulan Ini Habis)");
+          }
+        } else {
+          if (found) {
+            setDiskon(parseFloat(found.diskon || 0));
+            setPrioritas(found.prioritas);
+          } else {
+            // Berubah menjadi Pelanggan Baru jika tidak terdaftar di data hasil SPK
+            setDiskon(0);
+            setPrioritas("Pelanggan Baru");
+          }
         }
-      })
-      .catch(() => {
+
+      } catch (error) {
+        console.error("Gagal memproses validasi diskon:", error);
         setDiskon(0);
-        setPrioritas("Error");
-      })
-      .finally(() => {
+        setPrioritas("Error Jaringan");
+      } finally {
         setIsLoadingDiskon(false);
-      });
+      }
     }, 500);
-  
+
     return () => clearTimeout(delay);
-  }, [namaPelanggan, pedagang, selectedAlternatif, isNewFromDropdown]);
+  }, [namaPelanggan, pedagang, selectedAlternatif, isNewFromDropdown, tanggal]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -181,7 +203,6 @@ const TambahTransaksiPenjualan = () => {
       total_harga: totalHarga,
       harga_per_pcs: 2500,
       diskon: diskon,
-      // Menyertakan ID alternatif (jika pelanggan lama) atau null (jika pelanggan baru murni)
       id_alternatif: selectedAlternatif ? selectedAlternatif.id_alternatif : null,
       is_pelanggan_baru: !selectedAlternatif,
       items: selectedKerupuk.map((item) => ({
@@ -268,7 +289,7 @@ const TambahTransaksiPenjualan = () => {
                         setNamaPelanggan(e.target.value);
                         setShowDropdown(true);
                         setSelectedAlternatif(null);
-                        setIsNewFromDropdown(false); // mereset status penanda
+                        setIsNewFromDropdown(true); 
                       }}
                       onFocus={() => setShowDropdown(true)}
                       placeholder="Cari / pilih pelanggan..."
@@ -326,9 +347,9 @@ const TambahTransaksiPenjualan = () => {
                                   if (!tempNewName.trim()) return;
                                   const newName = tempNewName.trim();
                                   setNamaPelanggan(newName);
-                                  setPedagang(""); // Biarkan kosong agar diisi pedagang baru
+                                  setPedagang(""); 
                                   setSelectedAlternatif(null);
-                                  setIsNewFromDropdown(true); // Menandai ini sebagai pelanggan baru murni
+                                  setIsNewFromDropdown(true); 
                                   setTempNewName("");
                                   setIsAddingNewCustomer(false);
                                   setShowDropdown(false);

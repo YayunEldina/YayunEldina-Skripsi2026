@@ -23,6 +23,7 @@ Route::get('/alternatif/list', [AlternatifController::class, 'getListDropdown'])
 Route::get('/transaksi', [TransaksiController::class, 'index']);
 Route::post('/transaksi', [TransaksiController::class, 'store']);
 Route::get('/transaksi/cek-bulan', [TransaksiController::class, 'cekBulan']);
+Route::get('/transaksi/cek-kuota', [TransaksiController::class, 'cekKuotaDiskon']);
 Route::get('/transaksi/{id}', [TransaksiController::class, 'show']);
 Route::put('/transaksi/{id}', [TransaksiController::class, 'update']);
 Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroy']);
