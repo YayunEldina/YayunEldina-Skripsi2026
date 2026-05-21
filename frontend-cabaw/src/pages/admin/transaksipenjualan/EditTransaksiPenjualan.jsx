@@ -197,56 +197,73 @@ const EditTransaksiPenjualan = () => {
   }, [id, navigate, alternatifList]);
 
   // ================= FETCH DISKON =================
-  useEffect(() => {
-    if (!isDataReady) return;
+  // ================= FETCH DISKON =================
+useEffect(() => {
+  if (!isDataReady) return;
 
-    if (!namaPelanggan || !pedagang) {
-      setDiskon(0);
-      setPrioritas("-");
-      return;
-    }
+  // pelanggan baru murni
+  if (isNewFromDropdown || !selectedAlternatif) {
+    setDiskon(0);
+    setPrioritas("Pelanggan Baru");
+    setIsLoadingDiskon(false);
+    return;
+  }
 
-    setIsLoadingDiskon(true);
+  if (!namaPelanggan || !pedagang) {
+    setDiskon(0);
+    setPrioritas("-");
+    return;
+  }
 
-    const delay = setTimeout(() => {
-      axios
-        .get(
-          "http://127.0.0.1:8000/api/hasil-perhitungan",
-          {
-            params: {
-              tahun:
-                new Date().getFullYear() - 1,
-            },
-          }
-        )
-        .then((res) => {
-          const found = res.data.find(
-            (item) =>
-              normalize(item.nama) ===
-                normalize(namaPelanggan) &&
-              normalize(item.pedagang) ===
-                normalize(pedagang)
-          );
+  setIsLoadingDiskon(true);
 
-          if (found) {
-            setDiskon(found.diskon);
-            setPrioritas(found.prioritas);
-          } else {
-            setDiskon(0);
-            setPrioritas("Pelanggan Baru");
-          }
-        })
-        .catch(() => {
-          setDiskon(0);
-          setPrioritas("Error");
-        })
-        .finally(() =>
-          setIsLoadingDiskon(false)
+  const delay = setTimeout(() => {
+    axios
+      .get(
+        "http://127.0.0.1:8000/api/hasil-perhitungan",
+        {
+          params: {
+            tahun:
+              new Date().getFullYear() - 1,
+          },
+        }
+      )
+      .then((res) => {
+        const found = res.data.find(
+          (item) =>
+            normalize(item.nama) ===
+              normalize(namaPelanggan) &&
+            normalize(item.pedagang) ===
+              normalize(pedagang) &&
+            item.id_alternatif ===
+              selectedAlternatif?.id_alternatif
         );
-    }, 500);
 
-    return () => clearTimeout(delay);
-  }, [namaPelanggan, pedagang, isDataReady]);
+        if (found) {
+          setDiskon(found.diskon);
+          setPrioritas(found.prioritas);
+        } else {
+          setDiskon(0);
+          setPrioritas("Pelanggan Baru");
+        }
+      })
+      .catch(() => {
+        setDiskon(0);
+        setPrioritas("Error");
+      })
+      .finally(() =>
+        setIsLoadingDiskon(false)
+      );
+  }, 500);
+
+  return () => clearTimeout(delay);
+}, [
+  namaPelanggan,
+  pedagang,
+  selectedAlternatif,
+  isNewFromDropdown,
+  isDataReady,
+]);
 
   // ================= TOTAL =================
   const totalPembelian = useMemo(() => {
@@ -314,6 +331,12 @@ const EditTransaksiPenjualan = () => {
       total_harga: totalHarga,
       harga_per_pcs: 2500,
       diskon,
+      id_alternatif: selectedAlternatif
+        ? selectedAlternatif.id_alternatif
+        : null,
+
+      is_pelanggan_baru:
+        !selectedAlternatif,
 
       items: selectedKerupuk.map((item) => ({
         nama: item.name,
@@ -441,12 +464,12 @@ const EditTransaksiPenjualan = () => {
                         setNamaPelanggan(
                           e.target.value
                         );
-
+                      
                         setShowDropdown(true);
-
-                        setSelectedAlternatif(
-                          null
-                        );
+                      
+                        setSelectedAlternatif(null);
+                      
+                        setIsNewFromDropdown(false);
                       }}
                       onFocus={() =>
                         setShowDropdown(true)
@@ -654,12 +677,17 @@ const EditTransaksiPenjualan = () => {
                   </label>
 
                   <input
-  type="text"
-  value={pedagang}
-  onChange={(e) => setPedagang(e.target.value)}
-  placeholder="Masukkan nama pedagang"
-  className="flex-1 border rounded-lg px-3 py-2 bg-white"
-/>
+                  type="text"
+                  value={pedagang}
+                  onChange={(e) => setPedagang(e.target.value)}
+                  readOnly={!!selectedAlternatif}
+                  placeholder="Masukkan nama pedagang"
+                  className={`flex-1 border rounded-lg px-3 py-2 ${
+                    selectedAlternatif
+                      ? "bg-gray-100"
+                      : "bg-white"
+                  }`}
+                />
                 </div>
               </div>
 

@@ -21,7 +21,12 @@ class PenilaianKriteria extends Model
     }
 
     // Relasi ke Kriteria
-    public function kriteria() {
-        return $this->belongsTo(Kriteria::class, 'id_kriteria');
+    public function kriteria()
+    {
+        return $this->belongsTo(
+            Kriteria::class,
+            'id_kriteria',
+            'id_kriteria'
+        );
     }
 }

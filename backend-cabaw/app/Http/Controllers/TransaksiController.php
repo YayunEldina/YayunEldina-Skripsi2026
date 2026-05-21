@@ -61,33 +61,34 @@ class TransaksiController extends Controller
     $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
 
            // =========================
-// 1. PELANGGAN
-// =========================
+            // 1. PELANGGAN
+            // =========================
 
-$pelanggan = null;
+            $pelanggan = null;
 
-// 🔥 jika pelanggan lama → ambil dari alternatif
-if ($request->id_alternatif) {
+            // 🔥 jika pelanggan lama → ambil dari alternatif
+            $dataDiskon = null;
+            if ($request->id_alternatif) {
 
-    $alternatifLama = Alternatif::find($request->id_alternatif);
+                $alternatifLama = Alternatif::find($request->id_alternatif);
 
-    if ($alternatifLama) {
-        $pelanggan = Pelanggan::find($alternatifLama->id_pelanggan);
-    }
-}
+                if ($alternatifLama) {
+                    $pelanggan = Pelanggan::find($alternatifLama->id_pelanggan);
+                }
+            }
 
-// 🔥 jika pelanggan baru → buat pelanggan baru
-if (!$pelanggan) {
+            // 🔥 jika pelanggan baru → buat pelanggan baru
+            if (!$pelanggan) {
 
-    $pelanggan = Pelanggan::create([
-        'nama_pelanggan' => $request->nama_pelanggan,
-        'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
-        'password' => bcrypt('123456'),
-        'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
-        'alamat' => '-',
-        'no_telepon' => '0'
-    ]);
-}
+                $pelanggan = Pelanggan::create([
+                    'nama_pelanggan' => $request->nama_pelanggan,
+                    'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
+                    'password' => bcrypt('123456'),
+                    'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
+                    'alamat' => '-',
+                    'no_telepon' => '0'
+                ]);
+            }
 
             // =========================
             // 2. ALTERNATIF SPK
@@ -97,7 +98,7 @@ if (!$pelanggan) {
                 ->exists();
 
             if (!$exists) {
-                $kodeBaru = Alternatif::max('id_alternatif') + 1;
+                $kodeBaru = (Alternatif::max('id_alternatif') ?? 0) + 1;
 
                 Alternatif::create([
                     'id_pelanggan'    => $pelanggan->id_pelanggan,
@@ -110,26 +111,60 @@ if (!$pelanggan) {
             // =========================
             // 3. AMBIL DISKON SPK (FIX FINAL)
             // =========================
-            $tahunTransaksi = date('Y', strtotime($request->tanggal));
-            $tahunAmbil = $tahunTransaksi - 1;
+            $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
+            $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
+            
+           // ======================================
+            // KHUSUS AWAL SISTEM MEI 2026
+            // ======================================
 
-            $dataDiskon = null;
+            if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+
+                // ambil hasil historis 2025
+                $tahunSumber = 2025;
+                $bulanSumber = null;
+
+            } else {
+
+                // bulan berikutnya ambil bulan sebelumnya
+                if ($bulanTransaksi == 1) {
+                    $bulanSumber = 12;
+                    $tahunSumber = $tahunTransaksi - 1;
+                } else {
+                    $bulanSumber = $bulanTransaksi - 1;
+                    $tahunSumber = $tahunTransaksi;
+                }
+            }
+        
+            $sudahDapatDiskon = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
+                    ->where('pedagang', $pedagang)
+                    ->whereYear('tanggal', $tahunTransaksi)
+                    ->whereMonth('tanggal', $bulanTransaksi)
+                    ->where('diskon', '>', 0)
+                    ->exists();
 
             // hanya pelanggan lama yang boleh ambil diskon SPK
+            $dataDiskon = null;
             if ($request->id_alternatif) {
             
-                $dataDiskon = DB::table('hasil_perhitungan')
-                    ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
-                    ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
-                    ->where('tahun', $tahunAmbil)
-                    ->first();
+                $queryDiskon = DB::table('hasil_perhitungan')
+                ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
+                ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
+                ->where('tahun', $tahunSumber);
+            
+            // khusus Mei 2026 → tidak pakai bulan
+            if ($bulanSumber !== null) {
+                $queryDiskon->where('bulan', $bulanSumber);
+            }
+            
+            $dataDiskon = $queryDiskon->first();
             }
             // 🔥 LOG DEBUG
             \Log::info("CEK DISKON SPK", [
                 'nama' => $request->nama_pelanggan,
-                'pedagang' => $request->pedagang,
-                'tahun' => $tahunAmbil,
-                'hasil' => $dataDiskon
+                'pedagang' => $pedagang,
+                'tahun' => $tahunSumber,
+                'hasil' => $dataDiskon ?? null
             ]);
 
             if (!$dataDiskon) {
@@ -139,7 +174,11 @@ if (!$pelanggan) {
             // =========================
             // 4. FINAL DISKON (AMAN)
             // =========================
-            $diskon = $dataDiskon ? (float) $dataDiskon->diskon : 0;
+            $diskon = 0;
+
+            if ($request->id_alternatif && !$sudahDapatDiskon && isset($dataDiskon)) {
+                $diskon = (float) $dataDiskon->diskon;
+            }
 
             // =========================
             // 5. SIMPAN TRANSAKSI
@@ -245,56 +284,110 @@ public function update(Request $request, $id)
                     ->update(['nama_alternatif' => $request->nama_pelanggan]);
             }
 
+           // =========================
+            // 2. UPDATE alternatif lama
             // =========================
-// 2. UPDATE alternatif lama
-// =========================
-$alternatif = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
-    ->first();
+            $alternatif = null;
 
-if ($alternatif) {
+            if ($pelanggan) {
 
-    $alternatif->update([
-        'nama_alternatif' => $request->nama_pelanggan,
-        'pedagang'        => $pedagang,
-    ]);
+                $alternatif = Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)
+                    ->where('pedagang', $pedagang)
+                    ->first();
 
-} else {
+                if ($alternatif) {
 
-    // kalau benar-benar belum ada baru create
-    $kodeBaru = Alternatif::max('id_alternatif') + 1;
+                    $alternatif->update([
+                        'nama_alternatif' => $request->nama_pelanggan,
+                        'pedagang'        => $pedagang,
+                    ]);
 
-    Alternatif::create([
-        'id_pelanggan'    => $pelanggan->id_pelanggan,
-        'nama_alternatif' => $pelanggan->nama_pelanggan,
-        'kode_alternatif' => $kodeBaru,
-        'pedagang'        => $pedagang
-    ]);
-}
+                } else {
+
+                    // kalau benar-benar belum ada baru create
+                    $kodeBaru = (Alternatif::max('id_alternatif') ?? 0) + 1;
+
+                    Alternatif::create([
+                        'id_pelanggan'    => $pelanggan->id_pelanggan,
+                        'nama_alternatif' => $request->nama_pelanggan,
+                        'kode_alternatif' => $kodeBaru,
+                        'pedagang'        => $pedagang
+                    ]);
+                }
+            }
+                        
             // =========================
-            // 3. Ambil diskon SPK (tahun transaksi - 1)
+            // 3. Ambil diskon SPK 
             // =========================
-            $tahunTransaksi = date('Y', strtotime($request->tanggal));
-            $tahunAmbil     = $tahunTransaksi - 1;
+            $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
+            $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
+            
+           // ======================================
+            // KHUSUS AWAL SISTEM MEI 2026
+            // ======================================
 
-            $dataDiskon = null;
+            if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+
+                // ambil hasil historis 2025
+                $tahunSumber = 2025;
+                $bulanSumber = null;
+
+            } else {
+
+                // bulan berikutnya ambil bulan sebelumnya
+                if ($bulanTransaksi == 1) {
+                    $bulanSumber = 12;
+                    $tahunSumber = $tahunTransaksi - 1;
+                } else {
+                    $bulanSumber = $bulanTransaksi - 1;
+                    $tahunSumber = $tahunTransaksi;
+                }
+            }
+          
+            $sudahDapatDiskon = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->where('pedagang', $pedagang)
+                ->whereYear('tanggal', $tahunTransaksi)
+                ->whereMonth('tanggal', $bulanTransaksi)
+                ->where('diskon', '>', 0)
+                ->where('id_transaksi', '!=', $id)
+                ->exists();
 
             // hanya pelanggan lama yang boleh ambil diskon SPK
-            if ($request->id_alternatif) {
+           // hanya pelanggan lama yang boleh ambil diskon SPK
+$dataDiskon = null;
 
-                $dataDiskon = DB::table('hasil_perhitungan')
-                    ->whereRaw('LOWER(TRIM(nama)) = ?', [$this->normalize($request->nama_pelanggan)])
-                    ->whereRaw('LOWER(TRIM(pedagang)) = ?', [$pedagang])
-                    ->where('tahun', $tahunAmbil)
-                    ->first();
+if ($request->id_alternatif) {
+
+    $queryDiskon = DB::table('hasil_perhitungan')
+        ->where('id_alternatif', $request->id_alternatif)
+        ->whereRaw('LOWER(TRIM(nama)) = ?', [
+            $this->normalize($request->nama_pelanggan)
+        ])
+        ->whereRaw('LOWER(TRIM(pedagang)) = ?', [
+            $pedagang
+        ])
+        ->where('tahun', $tahunSumber);
+
+    // khusus Mei 2026 → tidak pakai bulan
+    if ($bulanSumber !== null) {
+        $queryDiskon->where('bulan', $bulanSumber);
+    }
+
+    $dataDiskon = $queryDiskon->first();
+}
+
+            $diskon = 0;
+
+            if ($request->id_alternatif && !$sudahDapatDiskon && isset($dataDiskon)) {
+                $diskon = (float) $dataDiskon->diskon;
             }
-
-            $diskon = $dataDiskon ? (float) $dataDiskon->diskon : 0;
 
             \Log::info("EDIT — CEK DISKON SPK", [
                 'nama'    => $request->nama_pelanggan,
                 'pedagang'=> $pedagang,
-                'tahun'   => $tahunAmbil,
+                'tahun' => $tahunSumber,
                 'diskon'  => $diskon,
+                'hasil' => $dataDiskon ?? null
             ]);
 
             // =========================
@@ -305,7 +398,7 @@ if ($alternatif) {
                 'total_pembelian'  => $request->total_pembelian,
                 'total_harga'      => $request->total_harga,
                 'tempat_transaksi' => $request->tempat_transaksi,
-                'pedagang'         => $pedagang,  // ✅ sudah terdefinisi
+                'pedagang'         => $pedagang,  
                 'diskon'           => $diskon,
             ]);
 

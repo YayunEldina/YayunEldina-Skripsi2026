@@ -16,13 +16,21 @@ class PerhitunganController extends Controller
         ini_set('memory_limit', '1G');
 
         $tahun = $request->query('tahun', date('Y'));
+        $bulan = $request->query('bulan');
 
         // ========================================================
         // 1. SINKRONISASI TRANSAKSI -> ALTERNATIF
         // ========================================================
-        $pelangganDariTransaksi = DB::table('transaksi')
-        ->join('pelanggan', 'transaksi.id_pelanggan', '=', 'pelanggan.id_pelanggan')
-        ->whereYear('transaksi.tanggal', $tahun)
+        $pelangganQuery = DB::table('transaksi')
+        ->join('pelanggan', 'transaksi.id_pelanggan', '=', 'pelanggan.id_pelanggan');
+    
+        $pelangganQuery->whereYear('transaksi.tanggal', $tahun);
+
+if ($bulan) {
+    $pelangganQuery->whereMonth('transaksi.tanggal', $bulan);
+}
+    
+    $pelangganDariTransaksi = $pelangganQuery
         ->select(
             'transaksi.id_pelanggan',
             'pelanggan.nama_pelanggan',
@@ -30,28 +38,6 @@ class PerhitunganController extends Controller
         )
         ->distinct()
         ->get();
-
-        foreach ($pelangganDariTransaksi as $p) {
-            $pedagang = strtolower(trim($p->pedagang));
-        
-            // CEK KOMBINASI BERDASARKAN ID PELANGGAN DAN TEXT PEDAGANG
-            $exists = Alternatif::where('id_pelanggan', $p->id_pelanggan)
-                ->where('pedagang', $pedagang)
-                ->exists();
-        
-            if (!$exists) {
-                $lastAlt = Alternatif::orderBy('id_alternatif', 'desc')->first();
-                $lastNum = $lastAlt ? intval(substr($lastAlt->kode_alternatif, 1)) : 0;
-                $newKode = "A" . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
-        
-                Alternatif::create([
-                    'id_pelanggan'    => $p->id_pelanggan,
-                    'nama_alternatif' => $p->nama_pelanggan,
-                    'kode_alternatif' => $newKode,
-                    'pedagang'        => $pedagang
-                ]);
-            }
-        }
 
         // ========================================================
         // 2. AMBIL DATA KRITERIA
@@ -63,22 +49,28 @@ class PerhitunganController extends Controller
         // ========================================================
         // 3. AMBIL DATA TRANSAKSI
         // ========================================================
-        $allStats = DB::table('transaksi')
-        ->whereYear('tanggal', $tahun)
-        ->select(
-            'id_pelanggan',
-            'pedagang', 
-            DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'),
-            DB::raw('COALESCE(SUM(total_harga), 0) as c2'),
-            DB::raw('COUNT(id_transaksi) as c3'),
-            DB::raw('COALESCE(AVG(total_pembelian), 0) as c4')
-        )
-        ->groupBy('id_pelanggan', 'pedagang') 
-        ->get()
-        ->keyBy(function($item){
-            return $item->id_pelanggan . '_' . strtolower(trim($item->pedagang));
-        });
+        $allStatsQuery = DB::table('transaksi');
+
+        $allStatsQuery->whereYear('tanggal', $tahun);
+
+        if ($bulan) {
+            $allStatsQuery->whereMonth('tanggal', $bulan);
+        }
         
+        $allStats = $allStatsQuery
+            ->select(
+                'id_pelanggan',
+                'pedagang',
+                DB::raw('COALESCE(SUM(total_pembelian), 0) as c1'),
+                DB::raw('COALESCE(SUM(total_harga), 0) as c2'),
+                DB::raw('COUNT(id_transaksi) as c3'),
+                DB::raw('COALESCE(AVG(total_pembelian), 0) as c4')
+            )
+            ->groupBy('id_pelanggan', 'pedagang')
+            ->get()
+            ->keyBy(function($item){
+                return $item->id_pelanggan . '_' . strtolower(trim($item->pedagang));
+            });
         // ========================================================
         // 4. AMBIL ALTERNATIF SESUAI TAHUN
         // ========================================================
@@ -169,15 +161,20 @@ class PerhitunganController extends Controller
         // ========================================================
         // 6. PROSES TOPSIS
         // ========================================================
-        $penilaians = PenilaianKriteria::whereIn(
+        $penilaians = PenilaianKriteria::with('kriteria')
+        ->whereIn(
             'id_alternatif',
             $alternatifs->pluck('id_alternatif')
-        )->get()->groupBy('id_alternatif');
+        )
+        ->get()
+        ->groupBy('id_alternatif');
 
         $hasilAkhir = [];
 
         foreach ($alternatifs as $alt) {
-            $nilaiAlt = $penilaians->get($alt->id_alternatif)?->keyBy(function($item) {
+            $nilaiAlt = $penilaians->get($alt->id_alternatif)?->filter(function ($item) {
+                return $item->kriteria != null;
+            })->keyBy(function($item) {
                 return strtoupper($item->kriteria->kode_kriteria);
             });
 
@@ -269,7 +266,14 @@ class PerhitunganController extends Controller
         // ========================================================
         // 🔥 REVISI UTAMA: SIMPAN ID ALTERNATIF KE DATABASE
         // ========================================================
-        DB::table('hasil_perhitungan')->where('tahun', $tahun)->delete();
+        $queryDelete = DB::table('hasil_perhitungan')
+        ->where('tahun', $tahun);
+    
+    if ($bulan) {
+        $queryDelete->where('bulan', $bulan);
+    }
+    
+    $queryDelete->delete();
 
         foreach ($hasilAkhir as $index => $item) {
             DB::table('hasil_perhitungan')->insert([
@@ -281,6 +285,7 @@ class PerhitunganController extends Controller
                 'diskon' => $item['diskon'],
                 'prioritas' => $item['status_prioritas'],
                 'tahun' => $tahun,
+                'bulan' => $bulan,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
