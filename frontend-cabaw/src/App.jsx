@@ -14,6 +14,8 @@ import TambahTransaksiPenjualan from "./pages/admin/transaksipenjualan/TambahTra
 import EditTransaksiPenjualan from "./pages/admin/transaksipenjualan/EditTransaksiPenjualan";
 import LihatTransaksiPenjualan from "./pages/admin/transaksipenjualan/LihatTransaksiPenjualan";
 import LaporanDiskon from "./pages/admin/laporan/LaporanDiskon";
+import ProfileMember from "./pages/member/profile/ProfileMember";
+import ProfileAdmin from "./pages/admin/profile/ProfileAdmin";
 
 
 function App() {
@@ -35,6 +37,8 @@ function App() {
         <Route path="/member/dashboard" element={<DashboardMember />} />
         <Route path="/member/pemesanan" element={<Pemesanan />} />
         <Route path="/admin/laporan-diskon" element={<LaporanDiskon />} />
+        <Route path="/admin/profile" element={<ProfileAdmin />} />
+        <Route path="/member/profile" element={<ProfileMember />} />
         
       </Routes>
     </BrowserRouter>

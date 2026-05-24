@@ -6,3 +6,13 @@ body {
   background-color: white;
   font-family: system-ui, sans-serif;
 }
+
+/* 🌟 TAMBAHKAN KODE INI DI BAGIAN PALING BAWAH 🌟 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+    box-shadow: 0 0 0 1000px white inset !important;
+    -webkit-text-fill-color: #1f2937 !important; /* Warna teks Gray-800 agar teks input tetap terlihat jelas */
+}

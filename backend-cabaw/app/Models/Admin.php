@@ -15,6 +15,10 @@ class Admin extends Authenticatable // Gunakan Authenticatable agar bisa login
     protected $fillable = [
         'nama_admin',
         'username',
-        'password'
+        'jenis_kelamin',
+        'password',
+        'no_telepon',
+        'alamat',
+        'foto_profil', 
     ];
 }

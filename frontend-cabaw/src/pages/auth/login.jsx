@@ -2,6 +2,9 @@ import { useState } from "react";
 import coverImg from "../../assets/cover.png";
 import { useNavigate } from "react-router-dom";
 
+import eyelineBuka from "../../assets/eyeline buka.svg";
+import eyelineTutup from "../../assets/eyeline tutup.svg";
+
 export const Login = () => {
   const navigate = useNavigate();
 
@@ -11,8 +14,9 @@ export const Login = () => {
   });
 
   const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState(""); // error dari backend
+  const [serverError, setServerError] = useState(""); 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); 
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -67,8 +71,7 @@ export const Login = () => {
       });
 
       const data = await response.json();
-      console.log(data); // ✅ di sini
-
+      console.log(data); 
 
       if (response.ok) {
         // simpan ke localStorage
@@ -76,36 +79,30 @@ export const Login = () => {
         localStorage.setItem("userRole", data.role);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        alert(
-          `Login Berhasil! Selamat datang, ${
-            data.user.nama_admin || data.user.nama_pelanggan
-          }`
-        );
-
-        // redirect
+        // redirect berdasarkan role
         if (data.role === "admin") {
           navigate("/admin/dashboard");
         } else {
           navigate("/member/dashboard");
         }
       } else {
-       // kalau ada error dari backend
-if (data.field) {
-  if (data.field === "both") {
-    setErrors({
-      username: "Nama pengguna tidak ditemukan",
-      password: "Kata sandi salah",
-    });
-  } else {
-    setErrors((prev) => ({
-      ...prev,
-      [data.field]: data.message,
-    }));
-  }
-} else {
-  // fallback
-  setServerError(data.message || "Terjadi kesalahan");
-}
+        // kalau ada error dari backend
+        if (data.field) {
+          if (data.field === "both") {
+            setErrors({
+              username: "Nama pengguna tidak ditemukan",
+              password: "Kata sandi salah",
+            });
+          } else {
+            setErrors((prev) => ({
+              ...prev,
+              [data.field]: data.message,
+            }));
+          }
+        } else {
+          // fallback
+          setServerError(data.message || "Terjadi kesalahan");
+        }
       }
     } catch (error) {
       console.error("Error:", error);
@@ -145,7 +142,7 @@ if (data.field) {
         <div className="mx-auto w-full max-w-md">
           <h1 className="text-center text-3xl font-bold text-black">Masuk</h1>
           <p className="mt-2 text-center text-gray-500">
-            Masuk untuk mengakses akun Anda
+            Masuk untuk accessing akun Anda
           </p>
 
           <form onSubmit={handleSubmit} className="mt-10 space-y-6">
@@ -178,18 +175,32 @@ if (data.field) {
               <label className="block text-base font-medium">
                 Kata Sandi
               </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Masukkan kata sandi anda"
-                className={`mt-2 w-full rounded-lg border p-3 text-base focus:outline-none ${
-                  errors.password
-                    ? "border-red-500"
-                    : "border-[#D1D1D6] focus:border-[#1E3A5F]"
-                }`}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Masukkan kata sandi anda"
+                  className={`mt-2 w-full rounded-lg border p-3 pr-12 text-base focus:outline-none ${
+                    errors.password
+                      ? "border-red-500"
+                      : "border-[#D1D1D6] focus:border-[#1E3A5F]"
+                  }`}
+                />
+                {/* Tombol dengan SVG Kustom Anda */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 top-2 flex items-center focus:outline-none"
+                >
+                  <img 
+                    src={showPassword ? eyelineBuka : eyelineTutup} 
+                    alt="Toggle Password" 
+                    className="h-6 w-6 opacity-70 hover:opacity-100 transition-opacity"
+                  />
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.password}
@@ -207,7 +218,7 @@ if (data.field) {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full rounded-lg bg-[#1E3A5F] py-3 font-semibold text-white hover:opacity-90 ${
+              className={`w-full rounded-lg bg-[#1E3A5F] py-3 font-semibold text-white hover:opacity-90 transition-opacity ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >

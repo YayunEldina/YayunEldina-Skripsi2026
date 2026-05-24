@@ -9,6 +9,7 @@ use App\Http\Controllers\KriteriaController;
 use App\Http\Controllers\AlternatifController;
 use App\Http\Controllers\PerhitunganController;
 use App\Http\Controllers\TransaksiController;
+use App\Http\Controllers\AdminController; 
 
 // Auth & Import
 Route::post('/login', [AuthController::class, 'login']);
@@ -49,3 +50,5 @@ Route::get('/hasil-perhitungan', function (Request $request) {
         ->get();
 });
 Route::get('/laporan-diskon', [TransaksiController::class, 'laporanDiskon']);
+Route::match(['POST', 'PUT'], '/pelanggan/{id}', [AuthController::class, 'updateProfile']);
+Route::put('/admin/{id}', [AdminController::class, 'update']);

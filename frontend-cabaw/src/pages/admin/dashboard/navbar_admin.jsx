@@ -22,7 +22,8 @@ const NavbarAdmin = () => {
 
   const [admin, setAdmin] = useState({
     name: "Admin",
-    email: "admin@mail.com",
+    username: "",
+    foto_profil: null,
   });
 
   useEffect(() => {
@@ -30,11 +31,9 @@ const NavbarAdmin = () => {
     if (storedUser) {
       setAdmin({
         ...storedUser,
-        name:
-          storedUser.nama_admin ||
-          storedUser.nama_pelanggan ||
-          "Admin",
-        email: storedUser.email || "admin@mail.com",
+        name: storedUser.nama_admin || "Admin",
+        username: storedUser.username || "admin",
+        foto_profil: storedUser.foto_profil || null, // 🌟 Mengambil path foto dari localStorage
       });
     }
   }, []);
@@ -61,7 +60,6 @@ const NavbarAdmin = () => {
 
         {/* 🔹 TENGAH - MENU */}
         <nav className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
-
           <NavItem
             icon={DashboardIcon}
             label="Dashboard"
@@ -104,47 +102,60 @@ const NavbarAdmin = () => {
             onClick={() => navigate("/admin/ranking")}
           />
 
-<NavItem
-  icon={LaporanIcon} // kalau belum ada, pakai RankingIcon dulu
-  label="Laporan Diskon"
-  active={location.pathname === "/admin/laporan-diskon"}
-  onClick={() => navigate("/admin/laporan-diskon")}
-/>
-
+          <NavItem
+            icon={LaporanIcon}
+            label="Laporan Diskon"
+            active={location.pathname === "/admin/laporan-diskon"}
+            onClick={() => navigate("/admin/laporan-diskon")}
+          />
         </nav>
 
         {/* 🔹 KANAN - PROFILE + LOGOUT */}
         <div className="flex items-center gap-3">
 
-          {/* 🔘 AVATAR */}
-          <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5 text-gray-500"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7h14c0-3.866-3.134-7-7-7z" />
-            </svg>
-          </div>
+          {/* 🔘 AVATAR & INFO (Bisa diklik untuk mengarah ke edit profil admin) */}
+          <div 
+            onClick={() => navigate("/admin/profile")} 
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            {/* 📷 FOTO PROFIL */}
+            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 group-hover:border-gray-400 transition">
+              {admin.foto_profil ? (
+                <img
+                  src={`http://127.0.0.1:8000/storage/${admin.foto_profil}`}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 text-gray-500"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7h14c0-3.866-3.134-7-7-7z" />
+                </svg>
+              )}
+            </div>
 
-          {/* 🧑 INFO */}
-          <div className="text-left leading-tight">
-            <h3 className="text-sm font-semibold">
-              {admin.name}
-            </h3>
-            <p className="text-[11px] text-gray-400">
-              {admin.email}
-            </p>
+            {/* 🧑 INFO TEXT */}
+            <div className="text-left leading-tight mr-2">
+              <h3 className="text-sm font-semibold group-hover:text-[#1E3A5F] transition">
+                {admin.name}
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                @{admin.username || "admin"}
+              </p>
+            </div>
           </div>
 
           {/* 🔴 LOGOUT BULAT */}
           <button
-  onClick={handleLogout}
-  className="w-9 h-9 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition"
->
-  <img src={LogoutIcon} alt="logout" className="w-4 h-4 opacity-70" />
-</button>
+            onClick={handleLogout}
+            className="w-9 h-9 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition"
+          >
+            <img src={LogoutIcon} alt="logout" className="w-4 h-4 opacity-70" />
+          </button>
 
         </div>
       </div>

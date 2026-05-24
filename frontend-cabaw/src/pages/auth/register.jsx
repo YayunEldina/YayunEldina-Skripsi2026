@@ -2,6 +2,10 @@ import { useState } from "react";
 import coverImg from "../../assets/cover.png";
 import { useNavigate } from "react-router-dom";
 
+// 🌟 IMPORT ASSET SVG MATA KUSTOM ANDA DISINI
+import eyelineBuka from "../../assets/eyeline buka.svg";
+import eyelineTutup from "../../assets/eyeline tutup.svg";
+
 export const Register = () => {
   const navigate = useNavigate();
 
@@ -14,6 +18,10 @@ export const Register = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  
+  // State untuk kontrol visibilitas password
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -82,7 +90,7 @@ export const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert("Pendaftaran Berhasil! Silakan masuk.");
+        // 🌟 POPUP ALERT SUDAH DIHAPUS AGAR LANGSUNG REDIRECT OTOMATIS KE LOGIN
         navigate("/login");
       } else {
         alert(data.message || "Pendaftaran gagal.");
@@ -184,18 +192,32 @@ export const Register = () => {
               <label className="block text-base font-medium">
                 Kata Sandi
               </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Masukkan kata sandi anda"
-                className={`mt-2 w-full rounded-lg border p-3 text-base focus:outline-none ${
-                  errors.password
-                    ? "border-red-500"
-                    : "border-[#D1D1D6] focus:border-[#1E3A5F]"
-                }`}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder="Masukkan kata sandi anda"
+                  className={`mt-2 w-full rounded-lg border p-3 pr-12 text-base focus:outline-none ${
+                    errors.password
+                      ? "border-red-500"
+                      : "border-[#D1D1D6] focus:border-[#1E3A5F]"
+                  }`}
+                />
+                {/* Tombol dengan SVG Kustom Anda */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 top-2 flex items-center focus:outline-none"
+                >
+                  <img 
+                    src={showPassword ? eyelineBuka : eyelineTutup} 
+                    alt="Toggle Password" 
+                    className="h-6 w-6 opacity-70 hover:opacity-100 transition-opacity"
+                  />
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.password}
@@ -208,18 +230,32 @@ export const Register = () => {
               <label className="block text-base font-medium">
                 Konfirmasi Kata Sandi
               </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="Ulangi kata sandi anda"
-                className={`mt-2 w-full rounded-lg border p-3 text-base focus:outline-none ${
-                  errors.confirmPassword
-                    ? "border-red-500"
-                    : "border-[#D1D1D6] focus:border-[#1E3A5F]"
-                }`}
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  placeholder="Ulangi kata sandi anda"
+                  className={`mt-2 w-full rounded-lg border p-3 pr-12 text-base focus:outline-none ${
+                    errors.confirmPassword
+                      ? "border-red-500"
+                      : "border-[#D1D1D6] focus:border-[#1E3A5F]"
+                  }`}
+                />
+                {/* Tombol dengan SVG Kustom Anda */}
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-3 top-2 flex items-center focus:outline-none"
+                >
+                  <img 
+                    src={showConfirmPassword ? eyelineBuka : eyelineTutup} 
+                    alt="Toggle Confirm Password" 
+                    className="h-6 w-6 opacity-70 hover:opacity-100 transition-opacity"
+                  />
+                </button>
+              </div>
               {errors.confirmPassword && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.confirmPassword}
@@ -230,7 +266,7 @@ export const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-[#1E3A5F] py-3 font-semibold text-white hover:opacity-90 disabled:bg-gray-400"
+              className="w-full rounded-lg bg-[#1E3A5F] py-3 font-semibold text-white hover:opacity-90 disabled:bg-gray-400 transition-opacity"
             >
               {loading ? "Memproses..." : "Daftar"}
             </button>
