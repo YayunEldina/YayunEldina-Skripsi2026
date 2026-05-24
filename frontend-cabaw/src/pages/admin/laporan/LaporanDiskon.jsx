@@ -25,6 +25,15 @@ const LaporanDiskon = () => {
 
   const normalize = (val) => (val || "").toString().toLowerCase().trim();
 
+  // HELPER: Mengubah teks prioritas menjadi nilai persen kuota diskon
+  const dapatkanPersenDiskon = (prioritasStr) => {
+    const p = normalize(prioritasStr);
+    if (p.includes("tinggi")) return "15%";
+    if (p.includes("sedang")) return "10%";
+    if (p.includes("rendah")) return "5%";
+    return "0%";
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -40,7 +49,7 @@ const LaporanDiskon = () => {
           `http://127.0.0.1:8000/api/hasil-perhitungan?tahun=2025`
         );
         
-        // Filter hanya yang memiliki prioritas valid (Tinggi, Sedang, Rendah / Diskon 15% sampai 5%)
+        // Filter hanya yang memiliki prioritas valid (Tinggi, Sedang, Rendah)
         const filteredSPK = (resSPK.data || []).filter(item => {
           const p = normalize(item.prioritas);
           return p.includes("tinggi") || p.includes("sedang") || p.includes("rendah");
@@ -101,7 +110,6 @@ const LaporanDiskon = () => {
 
           let laporanBulanIni = [];
 
-          // 🛠️ LOGIKA PERBAIKAN DI SINI: Memisahkan perlakuan bulan Mei dengan bulan lainnya
           if (nomorBulan === 5) {
             // KHUSUS BULAN MEI: Gabungkan dengan Master Data Ranking SPK
             laporanBulanIni = dataSPK.map((pelangganSPK) => {
@@ -140,7 +148,7 @@ const LaporanDiskon = () => {
             laporanBulanIni = transaksiValid.map((t) => ({
               ...t,
               prioritas: t.prioritas || "Pelanggan Lama",
-              isUsed: true, // Karena datanya disaring dari transaksi real, otomatis statusnya sudah digunakan
+              isUsed: true,
             }));
           }
 
@@ -164,7 +172,8 @@ const LaporanDiskon = () => {
                       <th className="border border-gray-300 px-4 py-3 text-left">No</th>
                       <th className="border border-gray-300 px-4 py-3 text-left">Nama Pelanggan</th>
                       <th className="border border-gray-300 px-4 py-3 text-left">Pedagang</th>
-                      <th className="border border-gray-300 px-4 py-3 text-left">Prioritas (Diskon)</th>
+                      <th className="border border-gray-300 px-4 py-3 text-left">Prioritas</th>
+                      <th className="border border-gray-300 px-4 py-3 text-left">Diskon (%)</th>
                       <th className="border border-gray-300 px-4 py-3 text-left">Total Pembelian</th>
                       <th className="border border-gray-300 px-4 py-3 text-left">Total Harga</th>
                       <th className="border border-gray-300 px-4 py-3 text-left">Total Diskon</th>
@@ -176,7 +185,7 @@ const LaporanDiskon = () => {
                     {loading ? (
                       <tr>
                         <td
-                          colSpan="8"
+                          colSpan="9"
                           className="border border-gray-300 text-center py-8 italic text-gray-500"
                         >
                           Sinkronisasi data SPK dan Transaksi...
@@ -194,18 +203,29 @@ const LaporanDiskon = () => {
                               {item.nama_pelanggan}
                             </td>
                             <td className="border border-gray-300 px-4 py-3 text-gray-600">{item.pedagang}</td>
-                            <td className="border border-gray-300 px-4 py-3 font-medium text-blue-800">
+                            
+                            {/* 🛠️ PERBAIKAN WARNA 1: Kolom Prioritas diubah dari text-blue-800 menjadi text-gray-800 normal */}
+                            <td className="border border-gray-300 px-4 py-3 text-gray-800">
                               {item.prioritas}
                             </td>
+                            
+                            {/* 🛠️ PERBAIKAN WARNA 2: Kolom Diskon (%) diubah dari text-purple-700 menjadi text-gray-600 normal */}
+                            <td className="border border-gray-300 px-4 py-3 text-gray-600">
+                              {dapatkanPersenDiskon(item.prioritas)}
+                            </td>
+                            
                             <td className="border border-gray-300 px-4 py-3 text-gray-600">
                               {item.total_pembelian} pcs
                             </td>
                             <td className="border border-gray-300 px-4 py-3 text-gray-600">
                               Rp {parseFloat(item.total_harga || 0).toLocaleString("id-ID")}
                             </td>
-                            <td className="border border-gray-300 px-4 py-3 text-green-600 font-semibold">
+                            
+                            {/* 🛠️ PERBAIKAN WARNA 3: Kolom Total Diskon diubah dari text-green-600 font-semibold menjadi text-gray-600 */}
+                            <td className="border border-gray-300 px-4 py-3 text-gray-600">
                               Rp {parseFloat(item.total_diskon || 0).toLocaleString("id-ID")}
                             </td>
+                            
                             <td className="border border-gray-300 px-4 py-3 text-center">
                               {item.isUsed ? (
                                 <span className="inline-block bg-green-100 text-green-700 border border-green-300 px-3 py-1 rounded-md text-xs font-bold shadow-sm">
@@ -223,7 +243,7 @@ const LaporanDiskon = () => {
                     ) : (
                       <tr>
                         <td
-                          colSpan="8"
+                          colSpan="9"
                           className="border border-gray-300 text-center py-8 text-gray-400 italic"
                         >
                           Tidak ada data penggunaan diskon bulan ini.
