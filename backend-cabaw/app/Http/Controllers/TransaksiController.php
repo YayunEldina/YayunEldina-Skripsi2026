@@ -93,21 +93,41 @@ class TransaksiController extends Controller
                 // ======================================
                 // Perhitungan Sumber Tahun/Bulan SPK
                 // ======================================
-                $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
-                $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
+                // $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
+                // $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
                 
-                if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
-                    $tahunSumber = 2025;
-                    $bulanSumber = null;
-                } else {
-                    if ($bulanTransaksi == 1) {
-                        $bulanSumber = 12;
-                        $tahunSumber = $tahunTransaksi - 1;
-                    } else {
-                        $bulanSumber = $bulanTransaksi - 1;
-                        $tahunSumber = $tahunTransaksi;
-                    }
-                }
+                // if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+                //     $tahunSumber = 2025;
+                //     $bulanSumber = null;
+                // } else {
+                //     if ($bulanTransaksi == 1) {
+                //         $bulanSumber = 12;
+                //         $tahunSumber = $tahunTransaksi - 1;
+                //     } else {
+                //         $bulanSumber = $bulanTransaksi - 1;
+                //         $tahunSumber = $tahunTransaksi;
+                //     }
+                // }
+                $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
+$tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
+
+if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+    // Mei 2026 mengambil data SPK tahun 2025 (bulan kosong/null)
+    $tahunSumber = 2025;
+    $bulanSumber = null;
+} else if ($tahunTransaksi == 2026 && $bulanTransaksi == 6) {
+    // ⚡ BARU: Juni 2026 mengambil data SPK tahun 2026 (bulan kosong/null)
+    $tahunSumber = 2026;
+    $bulanSumber = null;
+} else {
+    if ($bulanTransaksi == 1) {
+        $bulanSumber = 12;
+        $tahunSumber = $tahunTransaksi - 1;
+    } else {
+        $bulanSumber = $bulanTransaksi - 1;
+        $tahunSumber = $tahunTransaksi;
+    }
+}
             
                 // Cek kuota pemakaian diskon pada bulan berjalan
                 $sudahDapatDiskon = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)

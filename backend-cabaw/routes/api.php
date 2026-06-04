@@ -41,13 +41,21 @@ Route::get('/proses-perhitungan', [PerhitunganController::class, 'hitungFuzzyTop
 Route::post('/perhitungan/sinkronisasi', [PerhitunganController::class, 'sinkronisasiData']);
 
 // Diskon
+// 🛒 FIX: Menangani pencarian data tahun dan bulan (termasuk IS NULL) secara murni & dinamis
 Route::get('/hasil-perhitungan', function (Request $request) {
     $tahun = $request->query('tahun', date('Y'));
+    $bulan = $request->query('bulan');
 
-    return DB::table('hasil_perhitungan')
-        ->where('tahun', $tahun)
-        ->orderBy('ranking')
-        ->get();
+    $query = DB::table('hasil_perhitungan')->where('tahun', $tahun);
+
+    // Jika parameter bulan bernilai 'null' (string), kosong '', atau tidak diisi, cari yang IS NULL di DB
+    if (!$request->has('bulan') || $bulan === 'null' || $bulan === '') {
+        $query->whereNull('bulan');
+    } else {
+        $query->where('bulan', $bulan);
+    }
+
+    return $query->orderBy('ranking', 'asc')->get();
 });
 Route::get('/laporan-diskon', [TransaksiController::class, 'laporanDiskon']);
 Route::match(['POST', 'PUT'], '/pelanggan/{id}', [AuthController::class, 'updateProfile']);

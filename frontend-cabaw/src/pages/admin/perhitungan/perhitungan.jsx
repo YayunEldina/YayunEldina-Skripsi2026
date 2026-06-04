@@ -57,7 +57,7 @@ const [searchTerm, setSearchTerm] = useState("");
         {/* FILTER TAHUN */}
         <div className="flex items-center px-8 mt-6">
           <div className="flex gap-2">
-            {["2021", "2022", "2023", "2024", "2025"].map((y, i) => (
+          {["2021", "2022", "2023", "2024", "2025", "2026"].map((y, i) => (
               <button
                 key={i}
                 onClick={() => {

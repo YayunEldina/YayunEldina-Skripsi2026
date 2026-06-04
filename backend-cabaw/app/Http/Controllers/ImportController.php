@@ -130,6 +130,8 @@ class ImportController extends Controller
                 $allTransaksi[] = [
                     'id_transaksi'     => $idTransaksi,
                     'tanggal'          => $tanggal,
+                    'bulan'            => $bln,
+                    'tahun'            => $tahun,
                     'total_pembelian'  => (int)($line[18] ?? 0),
                     'total_harga'      => (float)($line[19] ?? 0),
                     'tempat_transaksi' => $line[20] ?? 'Pasar',
@@ -137,7 +139,7 @@ class ImportController extends Controller
                     'id_pelanggan'     => $idPelanggan,
                     'created_at'       => now(),
                 ];
-
+                
                 // =========================
                 // DETAIL TRANSAKSI (INT)
                 // =========================
