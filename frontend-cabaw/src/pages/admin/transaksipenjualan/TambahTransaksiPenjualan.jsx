@@ -60,10 +60,13 @@ const TambahTransaksiPenjualan = () => {
     { name: "Uyel Putih", img: UyelPutih, kategori: "Gurih" },
     { name: "Gorok", img: Gorok, kategori: "Manis" },
     { name: "Ikan", img: Ikan, kategori: "Gurih" },
-    { name: "Jari", img: Jari, kategori: "Gurih" },
+    { name: "Jari", img: Jari, font: "Gurih" },
     { name: "Keong", img: Keong, kategori: "Gurih" },
   ];
 
+  // =========================================================
+  // EFFECT UTAMA: VALIDASI DISKON & CEK KUOTA 1X PER BULAN
+  // =========================================================
   useEffect(() => {
     if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru" || !selectedAlternatif) {
       setDiskon(0);
@@ -92,10 +95,26 @@ const TambahTransaksiPenjualan = () => {
         const tahunPilihan = tanggalPilihan.getFullYear();
         const bulanPilihan = tanggalPilihan.getMonth() + 1; 
         
-        const tahunSumber = (tahunPilihan === 2026 && bulanPilihan === 5) ? 2025 : (bulanPilihan === 1 ? tahunPilihan - 1 : tahunPilihan);
+        // 1. Penentuan Sumber Data SPK secara Dinamis (Mundur 1 Bulan)
+        let tahunSumber;
+        let bulanSumber = null;
+
+        if (tahunPilihan === 2026 && bulanPilihan === 5) {
+          tahunSumber = 2025; // Mei 2026 mengambil database tahunan 2025
+        } else if (tahunPilihan === 2026 && bulanPilihan === 6) {
+          tahunSumber = 2026;
+          bulanSumber = 5;    // Juni 2026 mengambil hitungan Mei 2026
+        } else if (bulanPilihan === 1) {
+          tahunSumber = tahunPilihan - 1; 
+          bulanSumber = 12;
+        } else {
+          tahunSumber = tahunPilihan;
+          bulanSumber = bulanPilihan - 1; 
+        }
 
         const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
         
+        // 2. KODE ASLI ANDA: Cek Kuota Transaksi Bulanan Pelanggan ke Backend
         const resKuota = await axios.get("http://127.0.0.1:8000/api/transaksi/cek-kuota", {
           params: {
             id_pelanggan: idAlternatifKirim,
@@ -106,18 +125,25 @@ const TambahTransaksiPenjualan = () => {
 
         console.log("Respons Cek Kuota dari Backend:", resKuota.data);
 
-        const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
-          params: { tahun: tahunSumber }
-        });
+        // 3. Request Data Ranking SPK dengan menyertakan Filter Bulan
+        const paramsSPK = { tahun: tahunSumber };
+        if (bulanSumber !== null) {
+          paramsSPK.bulan = bulanSumber;
+        }
+
+        const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", { params: paramsSPK });
         const dataSPK = resSPK.data || [];
 
+        // Cari pelanggan di data peringkat SPK yang didapatkan
         const found = dataSPK.find(item =>
           (item.id_alternatif === idAlternatifKirim || item.id_pelanggan === idAlternatifKirim) &&
           normalize(item.nama) === normalize(namaPelanggan) &&
           normalize(item.pedagang) === normalize(pedagang)
         );
 
+        // 4. LOGIKA UTAMA KUOTA (KEMBALI KE KODE ASLI ANDA)
         if (resKuota.data && resKuota.data.sudah_transaksi === true) {
+          // JIKA KUOTA HABIS -> DISKON DIKUNCI 0 & ATUR TEKS PERINGATAN KASIR
           setDiskon(0);
           if (found) {
             setPrioritas(`${found.prioritas} (Kuota Bulan Ini Habis)`);
@@ -125,11 +151,11 @@ const TambahTransaksiPenjualan = () => {
             setPrioritas("Pelanggan Lama (Kuota Bulan Ini Habis)");
           }
         } else {
+          // JIKA KUOTA MASIH ADA -> BERIKAN DISKON SESUAI SPK
           if (found) {
             setDiskon(parseFloat(found.diskon || 0));
             setPrioritas(found.prioritas);
           } else {
-            // Berubah menjadi Pelanggan Baru jika tidak terdaftar di data hasil SPK
             setDiskon(0);
             setPrioritas("Pelanggan Baru");
           }
@@ -146,6 +172,7 @@ const TambahTransaksiPenjualan = () => {
 
     return () => clearTimeout(delay);
   }, [namaPelanggan, pedagang, selectedAlternatif, isNewFromDropdown, tanggal]);
+  // =========================================================
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -298,7 +325,6 @@ const TambahTransaksiPenjualan = () => {
 
                     {showDropdown && (
                       <div className="absolute z-10 w-full bg-white border rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
-                        {/* LIST EXISTING */}
                         {filteredAlternatif.map((alt) => (
                           <div
                             key={alt.id_alternatif}
@@ -322,7 +348,6 @@ const TambahTransaksiPenjualan = () => {
                         )}
 
                         <div className="border-t mt-2 pt-2 px-3">
-                          {/* TAMBAH PELANGGAN BARU */}
                           {!isAddingNewCustomer ? (
                             <button
                               type="button"
@@ -429,8 +454,10 @@ const TambahTransaksiPenjualan = () => {
                   <p className="text-2xl font-bold text-[#1E3A5F] mt-1">Rp {totalHarga.toLocaleString("id-ID")}</p>
 
                   <div className="mt-3">
+                    {/* CHIP INDIKATOR STATUS PRIORITAS & KUOTA */}
                     <span className={`px-2 py-1 rounded text-sm font-medium ${
                         isLoadingDiskon ? "bg-gray-100 text-gray-400 animate-pulse" : 
+                        prioritas.includes("Kuota Bulan Ini Habis") ? "bg-red-100 text-red-700" :
                         prioritas === "Prioritas Tinggi" ? "bg-green-100 text-green-700" :
                         prioritas === "Prioritas Sedang" ? "bg-yellow-100 text-yellow-700" :
                         prioritas === "Prioritas Rendah" ? "bg-blue-100 text-blue-700" :

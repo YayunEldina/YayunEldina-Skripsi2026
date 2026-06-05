@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import NavbarAdmin from "../dashboard/navbar_admin";
 
@@ -7,7 +7,7 @@ const LaporanDiskon = () => {
   const [tahun] = useState("2026");
   const [loading, setLoading] = useState(true);
   
-  // State untuk menampung data SPK spesifik tiap bulan
+  // State untuk menampung seluruh data SPK terproses
   const [dataSPKPerBulan, setDataSPKPerBulan] = useState({});
 
   const namaBulan = [
@@ -25,45 +25,11 @@ const LaporanDiskon = () => {
     return "0%";
   };
 
-  // 🛠️ PERBAIKAN: Fungsi fetch sekarang menerima parameter tahunSumber secara dinamis
-  const fetchSPKBulanDinamis = useCallback(async (bulanSumber, tahunSumber, nomorBulanUrutan) => {
-    // Jika data untuk bulan ini sudah ada di state, tidak perlu fetch ulang
-    if (dataSPKPerBulan[nomorBulanUrutan]) return;
-
-    try {
-      let url = `http://127.0.0.1:8000/api/hasil-perhitungan?tahun=${tahunSumber}`;
-      if (bulanSumber !== null) {
-        url += `&bulan=${bulanSumber}`;
-      } else {
-        url += `&bulan=null`;
-      }
-
-      const resSPK = await axios.get(url);
-      
-      const filteredSPK = (resSPK.data || []).filter(item => {
-        const p = normalize(item.prioritas);
-        return p.includes("tinggi") || p.includes("sedang") || p.includes("rendah");
-      });
-
-      const sortedSPK = filteredSPK.sort((a, b) => {
-        const bobot = { "prioritas tinggi": 3, "prioritas sedang": 2, "prioritas rendah": 1 };
-        return (bobot[normalize(b.prioritas)] || 0) - (bobot[normalize(a.prioritas)] || 0);
-      });
-
-      setDataSPKPerBulan(prev => ({
-        ...prev,
-        [nomorBulanUrutan]: sortedSPK
-      }));
-    } catch (err) {
-      console.error(`Gagal memuat data SPK bulan urutan ${nomorBulanUrutan}:`, err);
-    }
-  }, [dataSPKPerBulan]);
-
+  // 1. EFFECT: Mengambil Realisasi Transaksi Laporan Diskon
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Hanya mengambil data transaksi realisasi tahun berjalan
         const resLaporan = await axios.get(
           `http://127.0.0.1:8000/api/laporan-diskon?tahun=${tahun}`
         );
@@ -78,6 +44,61 @@ const LaporanDiskon = () => {
     fetchData();
   }, [tahun]);
 
+  // 2. EFFECT: Memuat Semua Data Urutan SPK (Mei - Desember) dengan Aman Tanpa Render Loop
+  useEffect(() => {
+    const loadSemuaSPK = async () => {
+      const hasil = {};
+  
+      for (let nomorBulan = 5; nomorBulan <= 12; nomorBulan++) {
+        let bulanSumber = null;
+        let tahunSumberSPK = tahun;
+  
+        // Pemetaan logika penentuan relasi SPK bulanan
+        if (nomorBulan === 5) {
+          tahunSumberSPK = "2025";
+          bulanSumber = null; // Mei 2026 mengambil data Tahunan 2025
+        } else {
+          tahunSumberSPK = "2026";
+          bulanSumber = nomorBulan - 1; // Juni mengambil Mei (5), Juli mengambil Juni (6), dst.
+        }
+  
+        try {
+          let url = `http://127.0.0.1:8000/api/hasil-perhitungan?tahun=${tahunSumberSPK}`;
+          
+          if (bulanSumber !== null) {
+            url += `&bulan=${bulanSumber}`;
+          } else {
+            url += `&bulan=null`;
+          }
+  
+          const res = await axios.get(url);
+          const dataRaw = res.data || [];
+
+          // Ambil filtrasi status prioritas & pengurutan yang sebelumnya ada di fetchSPKBulanDinamis
+          const filteredSPK = dataRaw.filter(item => {
+            const p = normalize(item.prioritas);
+            return p.includes("tinggi") || p.includes("sedang") || p.includes("rendah");
+          });
+
+          const sortedSPK = filteredSPK.sort((a, b) => {
+            const bobot = { "prioritas tinggi": 3, "prioritas sedang": 2, "prioritas rendah": 1 };
+            return (bobot[normalize(b.prioritas)] || 0) - (bobot[normalize(a.prioritas)] || 0);
+          });
+  
+          hasil[nomorBulan] = sortedSPK;
+        } catch (err) {
+          console.error(`Gagal memuat SPK Bulanan untuk urutan bulan ke-${nomorBulan}:`, err);
+          hasil[nomorBulan] = [];
+        }
+      }
+  
+      setDataSPKPerBulan(hasil);
+    };
+  
+    loadSemuaSPK();
+  }, [tahun]);
+
+  // Transformasi struktur data transaksi per bulan
   const transaksiPerBulan = laporanTransaksi.reduce((acc, item) => {
     const bulan = item.bulan || "1";
     if (!acc[bulan]) acc[bulan] = [];
@@ -103,30 +124,10 @@ const LaporanDiskon = () => {
           const nomorBulan = index + 1;
           const bulanStr = nomorBulan.toString();
 
+          // Membatasi tampilan agar dimulai dari bulan Mei saja (sesuai spesifikasi sistem tahun berjalan 2026)
           if (tahun === "2026" && nomorBulan < 5) {
             return null;
           }
-
-          // 🛠️ PERBAIKAN LOGIKA: Penentuan bulan sumber & tahun sumber SPK sesuai data slide 2 Anda
-          let bulanSumber = null;
-          let tahunSumberSPK = tahun;
-
-          if (nomorBulan === 5) {
-            // Mei 2026 mengambil data SPK tahun 2025 (bulan kosong/null)
-            bulanSumber = null; 
-            tahunSumberSPK = "2025";
-          } else if (nomorBulan === 6) {
-            // Juni 2026 mengambil ranking Mei 2026 (yang di DB tersimpan sebagai tahun 2026, bulan null)
-            bulanSumber = null; 
-            tahunSumberSPK = "2026"; 
-          } else {
-            // Juli 2026 ke atas mengikuti pola normal (mengambil bulan sebelumnya)
-            bulanSumber = nomorBulan - 1;
-            tahunSumberSPK = tahun;
-          }
-
-          // Picu pemanggilan API untuk bulan terkait dengan parameter dinamis baru
-          fetchSPKBulanDinamis(bulanSumber, tahunSumberSPK, nomorBulan);
 
           const listTransaksiBulanIni = transaksiPerBulan[bulanStr] || [];
           const dataSPKSpesifik = dataSPKPerBulan[nomorBulan] || [];

@@ -56,8 +56,8 @@ class TransaksiController extends Controller
         try {
             return DB::transaction(function () use ($request) {
 
-                $pedagang = trim($request->pedagang);
-                $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
+                $pedagangInput = trim($request->pedagang);
+                $pedagangFinal = $pedagangInput === '' ? '-' : $pedagangInput;
 
                 $pelanggan = null;
 
@@ -86,57 +86,38 @@ class TransaksiController extends Controller
                         'id_pelanggan'    => $pelanggan->id_pelanggan,
                         'nama_alternatif' => $pelanggan->nama_pelanggan,
                         'kode_alternatif' => $kodeBaru,
-                        'pedagang'        => $pedagang
+                        'pedagang'        => $pedagangFinal
                     ]);
                 }
 
                 // ======================================
                 // Perhitungan Sumber Tahun/Bulan SPK
                 // ======================================
-                // $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
-                // $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
-                
-                // if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
-                //     $tahunSumber = 2025;
-                //     $bulanSumber = null;
-                // } else {
-                //     if ($bulanTransaksi == 1) {
-                //         $bulanSumber = 12;
-                //         $tahunSumber = $tahunTransaksi - 1;
-                //     } else {
-                //         $bulanSumber = $bulanTransaksi - 1;
-                //         $tahunSumber = $tahunTransaksi;
-                //     }
-                // }
                 $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
-$tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
+                $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
 
-if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
-    // Mei 2026 mengambil data SPK tahun 2025 (bulan kosong/null)
-    $tahunSumber = 2025;
-    $bulanSumber = null;
-} else if ($tahunTransaksi == 2026 && $bulanTransaksi == 6) {
-    // ⚡ BARU: Juni 2026 mengambil data SPK tahun 2026 (bulan kosong/null)
-    $tahunSumber = 2026;
-    $bulanSumber = null;
-} else {
-    if ($bulanTransaksi == 1) {
-        $bulanSumber = 12;
-        $tahunSumber = $tahunTransaksi - 1;
-    } else {
-        $bulanSumber = $bulanTransaksi - 1;
-        $tahunSumber = $tahunTransaksi;
-    }
-}
+                if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+                    $tahunSumber = 2025;
+                    $bulanSumber = null;
+                }else if ($tahunTransaksi == 2026 && $bulanTransaksi == 6) {
+                    $tahunSumber = 2026;
+                    $bulanSumber = 5;
+                } else {
+                    if ($bulanTransaksi == 1) {
+                        $bulanSumber = 12;
+                        $tahunSumber = $tahunTransaksi - 1;
+                    } else {
+                        $bulanSumber = $bulanTransaksi - 1;
+                        $tahunSumber = $tahunTransaksi;
+                    }
+                }
             
-                // Cek kuota pemakaian diskon pada bulan berjalan
+                // Cek kuota pemakaian diskon pada bulan berjalan (Gunakan LOWER TRIM agar aman)
                 $sudahDapatDiskon = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
-                    ->where('pedagang', $pedagang)
+                    ->whereRaw('LOWER(TRIM(pedagang)) = ?', [strtolower(trim($pedagangFinal))])
                     ->whereYear('tanggal', $tahunTransaksi)
                     ->whereMonth('tanggal', $bulanTransaksi)
-                    ->whereNotNull('diskon')
-                    ->where('diskon', '>', 0)
-                    ->exists();
+                    ->exists(); // ⚡ JELAS: Jika di bulan ini sudah ada transaksi apa pun, kunci kuotanya.
 
                 // Tarik nilai diskon SPK dari tabel hasil_perhitungan
                 $dataDiskon = null;
@@ -165,7 +146,7 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                     'total_pembelian' => $request->total_pembelian,
                     'total_harga' => $request->total_harga,
                     'tempat_transaksi' => $request->tempat_transaksi,
-                    'pedagang' => $pedagang,
+                    'pedagang' => $pedagangFinal,
                     'diskon' => $diskon
                 ]);
 
@@ -201,20 +182,33 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
      */
     public function show($id)
     {
-        $transaksi = Transaksi::with(['pelanggan', 'detailTransaksi.produk'])->find($id);
-        
+        $transaksi = Transaksi::with([
+            'pelanggan',
+            'detailTransaksi.produk'
+        ])->find($id);
+    
         if (!$transaksi) {
-            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+            return response()->json([
+                'message' => 'Data tidak ditemukan'
+            ], 404);
         }
+    
+        $alternatif = Alternatif::where(
+            'id_pelanggan',
+            $transaksi->id_pelanggan
+        )->first();
+    
+        $data = $transaksi->toArray();
+        $data['id_alternatif'] = $alternatif?->id_alternatif;
     
         return response()->json([
             'status' => 'success',
-            'data' => $transaksi->toArray()
+            'data' => $data
         ]);
     }
 
-    /**
-     * Memperbarui data transaksi (Update)
+  /**
+     * Memperbarui data transaksi (Update) - REVISI PROTEKSI KUOTA DISKON
      */
     public function update(Request $request, $id)
     {
@@ -227,31 +221,37 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
         try {
             return DB::transaction(function () use ($request, $id) {
 
-                $pedagang = trim($request->pedagang ?? '-');
-                $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
+                $pedagangInput = trim($request->pedagang ?? '-');
+                $pedagangFinal = $pedagangInput === '' ? '-' : $pedagangInput;
 
                 $transaksi = Transaksi::findOrFail($id);
-                $pelanggan = Pelanggan::find($transaksi->id_pelanggan);
+                
+                // Cari id_pelanggan yang tepat berdasarkan alternatif yang dikirim frontend jika ada
+                $id_pelanggan_final = $transaksi->id_pelanggan;
+                if ($request->filled('id_alternatif') && $request->id_alternatif !== 'null' && $request->id_alternatif !== 'undefined') {
+                    $altCek = Alternatif::find($request->id_alternatif);
+                    if ($altCek) {
+                        $id_pelanggan_final = $altCek->id_pelanggan;
+                    }
+                }
+
+                $pelanggan = Pelanggan::find($id_pelanggan_final);
 
                 // ⚡ CEK APAKAH FORM RECONCILE SEBAGAI PELANGGAN BARU ATAU LAMA
                 if (!$request->filled('id_alternatif') || $request->id_alternatif === 'null' || $request->id_alternatif === 'undefined') {
                     
-                    // Skenario 1: Dipaksa/Diubah jadi Pelanggan Baru
-                    // Optimasi: Jika transaksi ini sebelumnya sudah membuat pelanggan baru, update saja datanya agar tidak duplikat record master
                     $cekAlternatifLain = Alternatif::where('id_pelanggan', $transaksi->id_pelanggan)->count();
                     
                     if ($pelanggan && $cekAlternatifLain <= 1) {
-                        // Jika pelanggan ini hanya terikat pada 1 alternatif milik transaksi ini, update profilnya langsung
                         $pelanggan->update([
                             'nama_pelanggan' => $request->nama_pelanggan,
                             'jenis_kelamin'  => $request->jenis_kelamin ?? 'Laki-laki',
                         ]);
                         Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)->update([
                             'nama_alternatif' => $request->nama_pelanggan,
-                            'pedagang'        => $pedagang
+                            'pedagang'        => $pedagangFinal
                         ]);
                     } else {
-                        // Jika ternyata pelanggan lama, buat record pelanggan baru gres agar relasi historis transaksi lain aman
                         $pelanggan = Pelanggan::create([
                             'nama_pelanggan' => $request->nama_pelanggan,
                             'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
@@ -264,13 +264,12 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                         $kodeBaru = (Alternatif::max('id_alternatif') ?? 0) + 1;
                         Alternatif::create([
                             'id_pelanggan'    => $pelanggan->id_pelanggan,
-                            'nama_alternatif' => $pelanggan->nama_pelanggan,
+                            'nama_alternatif' => $request->nama_pelanggan,
                             'kode_alternatif' => $kodeBaru,
-                            'pedagang'        => $pedagang
+                            'pedagang'        => $pedagangFinal
                         ]);
                     }
                 } else {
-                    // Skenario 2: Dipilih kembali ke Pelanggan Lama dari Dropdown React
                     $alternatifPilihan = Alternatif::find($request->id_alternatif);
                     if ($alternatifPilihan) {
                         $pelanggan = Pelanggan::find($alternatifPilihan->id_pelanggan);
@@ -281,7 +280,7 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                             ]);
                             $alternatifPilihan->update([
                                 'nama_alternatif' => $request->nama_pelanggan,
-                                'pedagang'        => $pedagang
+                                'pedagang'        => $pedagangFinal
                             ]);
                         }
                     }
@@ -296,6 +295,9 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                 if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                     $tahunSumber = 2025;
                     $bulanSumber = null;
+                } elseif ($tahunTransaksi == 2026 && $bulanTransaksi == 6) { // Tambahkan handling khusus Juni 2026 seperti pada fungsi store
+                    $tahunSumber = 2026;
+                    $bulanSumber = 5;
                 } else {
                     if ($bulanTransaksi == 1) {
                         $bulanSumber = 12;
@@ -306,14 +308,20 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                     }
                 }
               
-                $sudahDapatDiskon = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
-                    ->where('pedagang', $pedagang)
-                    ->whereYear('tanggal', $tahunTransaksi)
-                    ->whereMonth('tanggal', $bulanTransaksi)
-                    ->whereNotNull('diskon')
-                    ->where('diskon', '>', 0)
-                    ->where('id_transaksi', '!=', $id) // Abaikan id transaksi saat ini
-                    ->exists();
+                // Cek kuota transaksi LAIN yang sudah mengambil diskon di bulan ini
+                $transaksiPertama = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->whereRaw('LOWER(TRIM(pedagang)) = ?', [strtolower(trim($pedagangFinal))])
+                ->whereYear('tanggal', $tahunTransaksi)
+                ->whereMonth('tanggal', $bulanTransaksi)
+                ->orderBy('tanggal', 'asc')
+                ->orderBy('id_transaksi', 'asc')
+                ->first();
+
+                \Log::info('CEK TRANSAKSI PERTAMA', [
+                    'id_edit' => $id,
+                    'transaksi_pertama' => $transaksiPertama?->id_transaksi,
+                    'tanggal_pertama' => $transaksiPertama?->tanggal,
+                ]);
 
                 $dataDiskon = null;
                 if ($request->filled('id_alternatif') && $request->id_alternatif !== 'null' && $request->id_alternatif !== 'undefined') {
@@ -328,10 +336,39 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                     $dataDiskon = $queryDiskon->first();
                 }
 
+                // ======================================
+                // KUNCI LOGIKA BARU PENENTUAN DISKON
+                // ======================================
                 $diskon = 0;
-                if ($request->filled('id_alternatif') && $request->id_alternatif !== 'null' && $request->id_alternatif !== 'undefined' && !$sudahDapatDiskon && isset($dataDiskon)) {
-                    $diskon = (float) $dataDiskon->diskon;
+
+                if (
+                    $request->filled('id_alternatif') &&
+                    $request->id_alternatif !== 'null' &&
+                    $request->id_alternatif !== 'undefined' &&
+                    isset($dataDiskon)
+                ) {
+                
+                    if (
+                        $transaksiPertama &&
+                        $transaksiPertama->id_transaksi == $id
+                    ) {
+                        $diskon = (float) $dataDiskon->diskon;
+                    } else {
+                        $diskon = 0;
+                    }
                 }
+
+                // ==========================================
+                // REVISI LOG: Ditambahkan sebelum proses save
+                // ==========================================
+                \Log::info('UPDATE TRANSAKSI CEK DISKON', [
+                    'id_transaksi'      => $transaksi->id_transaksi,
+                    'id_pelanggan'      => $pelanggan->id_pelanggan,
+                    'pedagang'          => $pedagangFinal,
+                    'diskon_lama'       => $transaksi->diskon,
+                    'transaksi_pertama' => $transaksiPertama?->id_transaksi,
+                    'diskon_baru'       => $diskon,
+                ]);
 
                 // Eksekusi Update Transaksi Utama
                 $transaksi->update([
@@ -340,8 +377,8 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
                     'total_pembelian'  => $request->total_pembelian,
                     'total_harga'      => $request->total_harga,
                     'tempat_transaksi' => $request->tempat_transaksi,
-                    'pedagang'         => $pedagang,  
-                    'diskon'           => $diskon,
+                    'pedagang'         => $pedagangFinal,  
+                    'diskon'           => $diskon, 
                 ]);
 
                 // Reset dan Simpan Ulang Detail Item
@@ -440,53 +477,89 @@ if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
      * API untuk cek kuota diskon secara realtime
      */
     public function cekKuotaDiskon(Request $request)
-    {
-        $id_input = $request->query('id_pelanggan');
-        $pedagang = trim($request->query('pedagang', '-'));
-        $pedagang = $pedagang === '' ? '-' : strtolower($pedagang);
-        $tanggal = $request->query('tanggal');
-        $id_transaksi = $request->query('id_transaksi'); 
+{
+    $id_input = $request->query('id_pelanggan');
+    $pedagang = trim($request->query('pedagang', '-'));
+    $tanggal = $request->query('tanggal');
+    $id_transaksi = $request->query('id_transaksi');
 
-        if (!$id_input || $id_input === 'undefined' || $id_input === 'null' || !$tanggal) {
-            return response()->json(['sudah_transaksi' => false]);
-        }
-
-        $id_pelanggan = $id_input;
-        $alternatif = Alternatif::find($id_input);
-        if ($alternatif) {
-            $id_pelanggan = $alternatif->id_pelanggan;
-        }
-
-        $bulanTransaksi = (int) date('m', strtotime($tanggal));
-        $tahunTransaksi = (int) date('Y', strtotime($tanggal));
-
-        $query = Transaksi::where('id_pelanggan', $id_pelanggan)
-            ->where('pedagang', $pedagang)
-            ->whereYear('tanggal', $tahunTransaksi)
-            ->whereMonth('tanggal', $bulanTransaksi)
-            ->where(function ($q) {
-                $q->whereNotNull('diskon')
-                  ->where('diskon', '>', 0);
-            });
-
-        if ($id_transaksi && $id_transaksi !== 'undefined' && $id_transaksi !== 'null') {
-            $query->where('id_transaksi', '!=', $id_transaksi);
-        }
-
-        $sudahDapatDiskon = $query->exists();
-
-        \Log::info("REALTIME CEK KUOTA (FIXED WITH EDIT MODE)", [
-            'id_input_dari_react' => $id_input,
-            'id_pelanggan_asli'   => $id_pelanggan,
-            'id_transaksi_edit'   => $id_transaksi,
-            'pedagang'            => $pedagang,
-            'bulan'               => $bulanTransaksi,
-            'tahun'               => $tahunTransaksi,
-            'sudah_transaksi'     => $sudahDapatDiskon
-        ]);
-
+    if (!$id_input || !$tanggal) {
         return response()->json([
-            'sudah_transaksi' => $sudahDapatDiskon
+            'sudah_transaksi' => false
         ]);
     }
+
+    $alternatif = Alternatif::find($id_input);
+
+    $id_pelanggan = $alternatif
+    ? $alternatif->id_pelanggan
+    : $id_input;
+
+    \Log::info('CEK TRANSAKSI 48886', [
+        'data' => Transaksi::where('id_transaksi', 48886)->first()
+    ]);
+
+    $semuaData = Transaksi::where('id_pelanggan', $id_pelanggan)
+    ->get([
+        'id_transaksi',
+        'id_pelanggan',
+        'pedagang',
+        'diskon',
+        'tanggal'
+    ]);
+
+foreach ($semuaData as $trx) {
+    \Log::info('DETAIL TRANSAKSI', [
+        'id_transaksi' => $trx->id_transaksi,
+        'id_pelanggan' => $trx->id_pelanggan,
+        'pedagang' => $trx->pedagang,
+        'diskon' => $trx->diskon,
+        'tanggal' => $trx->tanggal,
+    ]);
+}
+    $bulanTransaksi = date('m', strtotime($tanggal));
+    $tahunTransaksi = date('Y', strtotime($tanggal));
+
+    $query = Transaksi::where('id_pelanggan', $id_pelanggan)
+        ->whereRaw(
+            'LOWER(TRIM(pedagang)) = ?',
+            [strtolower(trim($pedagang))]
+        )
+        ->whereYear('tanggal', $tahunTransaksi)
+        ->whereMonth('tanggal', $bulanTransaksi)
+        ->where('diskon', '>', 0);
+
+    if ($id_transaksi) {
+        $query->where('id_transaksi', '!=', $id_transaksi);
+    }
+
+    // ==========================
+    // DEBUG CEK KUOTA
+    // ==========================
+    \Log::info('CEK KUOTA DEBUG', [
+        'id_input' => $id_input,
+        'id_pelanggan_hasil' => $id_pelanggan,
+        'pedagang' => $pedagang,
+        'tanggal' => $tanggal,
+        'id_transaksi' => $id_transaksi,
+        'jumlah_ditemukan' => $query->count(),
+        'data_ditemukan' => $query->get([
+            'id_transaksi',
+            'id_pelanggan',
+            'diskon',
+            'tanggal',
+            'pedagang'
+        ])->toArray()
+    ]);
+
+    \Log::info('HASIL CEK KUOTA', [
+        'id_transaksi_edit' => $id_transaksi,
+        'exists' => $query->exists(),
+        'data' => $query->get()->toArray()
+    ]);
+
+    return response()->json([
+        'sudah_transaksi' => $query->exists()
+    ]);
+}
 }

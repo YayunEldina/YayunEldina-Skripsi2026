@@ -42,6 +42,8 @@ const EditTransaksiPenjualan = () => {
   const [tempNewName, setTempNewName] = useState("");
   const [isNewFromDropdown, setIsNewFromDropdown] = useState(false);
   const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
   
   const dropdownRef = useRef(null);
   const normalize = (val) => (val || "").toString().toLowerCase().trim();
@@ -67,165 +69,188 @@ const EditTransaksiPenjualan = () => {
       .catch(() => console.log("Gagal ambil alternatif"));
   }, []);
 
-  // ================= FETCH DATA TRANSAKSI DETAIL (EDIT MODE) =================
-  useEffect(() => {
-    if (!id || alternatifList.length === 0) return;
+// ================= FETCH DATA TRANSAKSI DETAIL (EDIT MODE) =================
+useEffect(() => {
+  if (!id || alternatifList.length === 0) return;
 
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`http://127.0.0.1:8000/api/transaksi/${id}`);
-        const data = res.data.data || res.data;
+  const fetchData = async () => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:8000/api/transaksi/${id}`);
+      const data = res.data.data || res.data;
 
-        const currentNama = data.pelanggan?.nama_pelanggan || data.nama_pelanggan || "";
-        const currentPedagang = data.pedagang || "";
+      const currentNama = data.pelanggan?.nama_pelanggan || data.nama_pelanggan || "";
+      const currentPedagang = (data.pedagang || "").trim(); // ✅ Fix Bug 3
 
-        setNamaPelanggan(currentNama);
-        setJenisKelamin(data.pelanggan?.jenis_kelamin || data.jenis_kelamin || "");
-        setTanggal(data.tanggal ? data.tanggal.split(" ")[0] : "");
-        setTempatTransaksi(data.tempat_transaksi || "");
-        setPedagang(currentPedagang);
-        
-        // 🛠️ PERBAIKAN LOGIKA UTAMA: Cek apakah di DB transaksi ini dasarnya Pelanggan Baru
-        // Kita cek field relasi ID-nya (biasanya id_pelanggan atau id_alternatif dari backend)
-        const dbIdPelanggan = data.id_pelanggan || data.id_alternatif;
+      setNamaPelanggan(currentNama);
+      setJenisKelamin(data.pelanggan?.jenis_kelamin || data.jenis_kelamin || "");
+      setTanggal(data.tanggal ? data.tanggal.split(" ")[0] : "");
+      setTempatTransaksi(data.tempat_transaksi || "");
+      setPedagang(currentPedagang);
 
-        if (!dbIdPelanggan || dbIdPelanggan === "null" || data.is_pelanggan_baru === true || data.is_pelanggan_baru === 1) {
-          // JIKA di database id relasinya kosong atau ada flag pelanggan baru, KUNCI sebagai Pelanggan Baru!
-          console.log("Transaksi ini terkonfirmasi sebagai Pelanggan Baru dari database.");
-          setSelectedAlternatif(null);
-          setIsNewFromDropdown(true); // Ini akan mengunci status menjadi 'Pelanggan Baru' & diskon 0%
-        } else {
-          // JIKA ada ID pelanggan di database, baru kita cari data aslinya di alternatifList
-          const matchAlternatif = alternatifList.find((alt) => {
-            return (alt.id_pelanggan && alt.id_pelanggan === dbIdPelanggan) || 
-                   (alt.id_alternatif && alt.id_alternatif === dbIdPelanggan) ||
-                   (alt.id && alt.id === dbIdPelanggan);
-          });
+      // ✅ Fix Bug 1: Gunakan id_pelanggan saja, cocokkan ke alt.id_pelanggan
+      const dbIdPelanggan = data.id_pelanggan;
+console.log("=== DEBUG EDIT ===");
+console.log("data.id_pelanggan:", dbIdPelanggan, typeof dbIdPelanggan);
+console.log("alternatifList sample:", alternatifList.slice(0, 3).map(a => ({
+  id_pelanggan: a.id_pelanggan,
+  tipe: typeof a.id_pelanggan,
+  nama: a.nama_alternatif
+})));
 
-          if (matchAlternatif) {
-            console.log("Alternatif Ditemukan (Pelanggan Lama):", matchAlternatif);
-            setSelectedAlternatif(matchAlternatif);
-            setIsNewFromDropdown(false);
-          } else {
-            // Pelindung jika ID ada tapi data master terhapus
-            console.log("ID ada tapi data alternatif tidak ditemukan di master.");
-            setSelectedAlternatif(null);
-            setIsNewFromDropdown(true);
-          }
-        }
+const matchAlternatif = alternatifList.find(
+  (alt) => String(alt.id_pelanggan) === String(dbIdPelanggan)
+);
+console.log("matchAlternatif:", matchAlternatif);
 
-        const details = data.detail_transaksi || [];
-        const itemsMap = {};
-        const itemsList = [];
-
-        details.forEach((dt) => {
-          const nama = dt.produk?.nama_produk || dt.nama_produk;
-          const produkObj = allProducts.find((p) => p.name === nama);
-          if (produkObj) {
-            itemsMap[nama] = dt.jumlah || 1;
-            itemsList.push(produkObj);
-          }
-        });
-
-        setJumlah(itemsMap);
-        setSelectedKerupuk(itemsList);
-      } catch (err) {
-        console.error("Gagal mengambil data detail edit:", err);
-        alert("Gagal ambil data transaksi!");
-        navigate("/admin/transaksi");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id, allProducts, alternatifList, navigate]);
-
-  // ================= VALIDASI DISKON & KUOTA SPK REALTIME =================
-  useEffect(() => {
-    if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru") {
-      setDiskon(0);
-      setPrioritas("Pelanggan Baru");
-      setIsLoadingDiskon(false);
-      return;
-    }
-
-    if (!selectedAlternatif) {
-      setDiskon(0);
-      setPrioritas("Pelanggan Baru");
-      return;
-    }
-
-    if (!namaPelanggan || !pedagang) {
-      setDiskon(0);
-      setPrioritas("-");
-      return;
-    }
-
-    if (!tanggal) {
-      setDiskon(0);
-      setPrioritas("Pilih Tanggal Dahulu");
-      return;
-    }
-
-    setIsLoadingDiskon(true);
-
-    const delay = setTimeout(async () => {
-      try {
-        const tanggalPilihan = new Date(tanggal);
-        const tahunPilihan = tanggalPilihan.getFullYear();
-        const bulanPilihan = tanggalPilihan.getMonth() + 1;
-        
-        const tahunSumber = (tahunPilihan === 2026 && bulanPilihan === 5) ? 2025 : (bulanPilihan === 1 ? tahunPilihan - 1 : tahunPilihan);
-        const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
-
-        // 🛠️ FIX: Mengirim parameter id_transaksi agar kuota miliknya sendiri tidak dihitung sebagai pembatas
-        const resKuota = await axios.get("http://127.0.0.1:8000/api/transaksi/cek-kuota", {
-          params: {
-            id_pelanggan: idAlternatifKirim,
-            pedagang: pedagang,
-            tanggal: tanggal,
-            id_transaksi: id 
-          }
-        });
-
-        const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
-          params: { tahun: tahunSumber }
-        });
-        const dataSPK = resSPK.data || [];
-
-        const found = dataSPK.find(item =>
-          normalize(item.nama) === normalize(namaPelanggan) &&
-          normalize(item.pedagang) === normalize(pedagang)
+      if (!dbIdPelanggan) {
+        setSelectedAlternatif(null);
+        setIsNewFromDropdown(true);
+      } else {
+        const matchAlternatif = alternatifList.find(
+          (alt) => String(alt.id_pelanggan) === String(dbIdPelanggan)
         );
 
-        if (resKuota.data && resKuota.data.sudah_transaksi === true) {
-          setDiskon(0);
-          if (found) {
-            setPrioritas(`${found.prioritas} (Kuota Bulan Ini Habis)`);
-          } else {
-            setPrioritas("Pelanggan Lama (Kuota Bulan Ini Habis)");
-          }
+        if (matchAlternatif) {
+          setSelectedAlternatif(matchAlternatif);
+          setIsNewFromDropdown(false);
         } else {
-          if (found) {
-            setDiskon(parseFloat(found.diskon || 0));
-            setPrioritas(found.prioritas);
-          } else {
-            setDiskon(0);
-            setPrioritas("Pelanggan Lama (Tidak Ada di SPK)");
-          }
+          setSelectedAlternatif(null);
+          setIsNewFromDropdown(true);
         }
-      } catch (error) {
-        console.error("Gagal memproses validasi diskon:", error);
-        setDiskon(0);
-        setPrioritas("Error Jaringan");
-      } finally {
-        setIsLoadingDiskon(false);
       }
-    }, 500);
 
-    return () => clearTimeout(delay);
-  }, [namaPelanggan, pedagang, selectedAlternatif, isNewFromDropdown, tanggal, id]);
+      const details = data.detail_transaksi || [];
+      const itemsMap = {};
+      const itemsList = [];
+
+      details.forEach((dt) => {
+        const nama = dt.produk?.nama_produk || dt.nama_produk;
+        const produkObj = allProducts.find((p) => p.name === nama);
+        if (produkObj) {
+          itemsMap[nama] = dt.jumlah || 1;
+          itemsList.push(produkObj);
+        }
+      });
+
+      setJumlah(itemsMap);
+      setSelectedKerupuk(itemsList);
+
+    } catch (err) {
+      console.error("Gagal mengambil data detail edit:", err);
+      alert("Gagal ambil data transaksi!");
+      navigate("/admin/transaksi");
+    } finally {
+      setLoading(false);
+      setIsDataLoaded(true); // ✅ Fix Bug 2: Tandai data sudah selesai di-load
+    }
+  };
+
+  fetchData();
+}, [id, allProducts, alternatifList, navigate]);
+
+// ================= VALIDASI DISKON & KUOTA SPK REALTIME =================
+useEffect(() => {
+  if (!isDataLoaded) return; // ✅ Fix Bug 2: Jangan jalan sebelum data siap
+
+  if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru") {
+    setDiskon(0);
+    setPrioritas("Pelanggan Baru");
+    setIsLoadingDiskon(false);
+    return;
+  }
+
+  if (!selectedAlternatif) {
+    setDiskon(0);
+    setPrioritas("Pelanggan Baru");
+    return;
+  }
+
+  if (!namaPelanggan || !pedagang) {
+    setDiskon(0);
+    setPrioritas("-");
+    return;
+  }
+
+  if (!tanggal) {
+    setDiskon(0);
+    setPrioritas("Pilih Tanggal Dahulu");
+    return;
+  }
+
+  setIsLoadingDiskon(true);
+
+  const delay = setTimeout(async () => {
+    try {
+      const tanggalPilihan = new Date(tanggal);
+      const tahunPilihan = tanggalPilihan.getFullYear();
+      const bulanPilihan = tanggalPilihan.getMonth() + 1;
+
+      let tahunSumber;
+      let bulanSumber = null;
+
+      if (tahunPilihan === 2026 && bulanPilihan === 5) {
+        tahunSumber = 2025;
+      } else if (tahunPilihan === 2026 && bulanPilihan === 6) {
+        tahunSumber = 2026;
+        bulanSumber = 5;
+      } else if (bulanPilihan === 1) {
+        tahunSumber = tahunPilihan - 1;
+        bulanSumber = 12;
+      } else {
+        tahunSumber = tahunPilihan;
+        bulanSumber = bulanPilihan - 1;
+      }
+
+      const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
+
+      const resKuota = await axios.get("http://127.0.0.1:8000/api/transaksi/cek-kuota", {
+        params: {
+          id_pelanggan: idAlternatifKirim,
+          pedagang: pedagang.trim(), // ✅ Fix Bug 3: pastikan trim
+          tanggal: tanggal,
+          id_transaksi: id
+        }
+      });
+
+      const paramsSPK = { tahun: tahunSumber };
+      if (bulanSumber !== null) paramsSPK.bulan = bulanSumber;
+
+      const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
+        params: paramsSPK,
+      });
+      const dataSPK = resSPK.data || [];
+
+      const found = dataSPK.find(
+        (item) => String(item.id_alternatif) === String(idAlternatifKirim)
+      );
+
+      if (resKuota.data && resKuota.data.sudah_transaksi === true) {
+        setDiskon(0);
+        setPrioritas(found
+          ? `${found.prioritas} (Kuota Bulan Ini Habis)`
+          : "Pelanggan Lama (Kuota Bulan Ini Habis)"
+        );
+      } else {
+        if (found) {
+          setDiskon(parseFloat(found.diskon || 0));
+          setPrioritas(found.prioritas);
+        } else {
+          setDiskon(0);
+          setPrioritas("Pelanggan Lama (Tidak Ada di SPK)");
+        }
+      }
+    } catch (error) {
+      console.error("Gagal memproses validasi diskon:", error);
+      setDiskon(0);
+      setPrioritas("Error Jaringan");
+    } finally {
+      setIsLoadingDiskon(false);
+    }
+  }, 500);
+
+  return () => clearTimeout(delay);
+}, [namaPelanggan, pedagang, selectedAlternatif, isNewFromDropdown, tanggal, id, isDataLoaded]);
+//                                                                              ✅ tambah isDataLoaded
 
   // Close dropdown click outside
   useEffect(() => {
@@ -283,7 +308,6 @@ const EditTransaksiPenjualan = () => {
       total_harga: totalHarga,
       harga_per_pcs: 2500,
       diskon: diskon,
-      // 🛠️ FIX: Kirim string 'null' secara aman sesuai kebutuhan backend jika bernilai null
       id_alternatif: selectedAlternatif ? selectedAlternatif.id_alternatif : "null",
       items: selectedKerupuk.map((item) => ({
         nama: item.name,
@@ -370,7 +394,7 @@ const EditTransaksiPenjualan = () => {
                         setNamaPelanggan(e.target.value);
                         setShowDropdown(true);
                         setSelectedAlternatif(null);
-                        setIsNewFromDropdown(false);
+                        setIsNewFromDropdown(true); // ✅ User ngetik manual = anggap pelanggan baru
                       }}
                       onFocus={() => setShowDropdown(true)}
                       placeholder="Cari / pilih pelanggan..."
@@ -506,11 +530,19 @@ const EditTransaksiPenjualan = () => {
 
                   <div className="mt-3">
                     <span className={`px-2 py-1 rounded text-sm font-medium ${
-                        isLoadingDiskon ? "bg-gray-100 text-gray-400 animate-pulse" : 
-                        prioritas === "Prioritas Tinggi" ? "bg-green-100 text-green-700" :
-                        prioritas === "Prioritas Sedang" ? "bg-yellow-100 text-yellow-700" :
-                        prioritas === "Prioritas Rendah" ? "bg-blue-100 text-blue-700" :
-                        prioritas === "Pelanggan Baru" ? "bg-gray-200 text-gray-600" : "bg-gray-100 text-gray-500"
+                        isLoadingDiskon
+                          ? "bg-gray-100 text-gray-400 animate-pulse"
+                          : prioritas.includes("Kuota Bulan Ini Habis")
+                          ? "bg-red-100 text-red-700"
+                          : prioritas === "Prioritas Tinggi"
+                          ? "bg-green-100 text-green-700"
+                          : prioritas === "Prioritas Sedang"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : prioritas === "Prioritas Rendah"
+                          ? "bg-blue-100 text-blue-700"
+                          : prioritas === "Pelanggan Baru"
+                          ? "bg-gray-200 text-gray-600"
+                          : "bg-gray-100 text-gray-500"
                     }`}>
                       {isLoadingDiskon ? "Mengecek status..." : prioritas}
                     </span>

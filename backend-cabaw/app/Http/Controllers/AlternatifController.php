@@ -56,15 +56,16 @@ class AlternatifController extends Controller
     }
 
     public function getListDropdown()
-    {
-        $data = Alternatif::select(
-            'id_alternatif',
-            'nama_alternatif',
-            DB::raw('LOWER(TRIM(pedagang)) as pedagang')
-        )
-        ->orderBy('nama_alternatif')
-        ->get();
-    
-        return response()->json($data);
-    }
+{
+    $data = Alternatif::select(
+        'id_alternatif',
+        'id_pelanggan', // TAMBAHKAN INI
+        'nama_alternatif',
+        DB::raw('LOWER(TRIM(pedagang)) as pedagang')
+    )
+    ->orderBy('nama_alternatif')
+    ->get();
+
+    return response()->json($data);
+}
 }

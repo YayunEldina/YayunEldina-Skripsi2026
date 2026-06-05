@@ -22,22 +22,22 @@ class PerhitunganController extends Controller
         // 1. SINKRONISASI TRANSAKSI -> ALTERNATIF
         // ========================================================
         $pelangganQuery = DB::table('transaksi')
-        ->join('pelanggan', 'transaksi.id_pelanggan', '=', 'pelanggan.id_pelanggan');
-    
+            ->join('pelanggan', 'transaksi.id_pelanggan', '=', 'pelanggan.id_pelanggan');
+        
         $pelangganQuery->whereYear('transaksi.tanggal', $tahun);
 
-if ($bulan) {
-    $pelangganQuery->whereMonth('transaksi.tanggal', $bulan);
-}
-    
-    $pelangganDariTransaksi = $pelangganQuery
-        ->select(
-            'transaksi.id_pelanggan',
-            'pelanggan.nama_pelanggan',
-            'transaksi.pedagang'
-        )
-        ->distinct()
-        ->get();
+        if ($bulan) {
+            $pelangganQuery->whereMonth('transaksi.tanggal', $bulan);
+        }
+        
+        $pelangganDariTransaksi = $pelangganQuery
+            ->select(
+                'transaksi.id_pelanggan',
+                'pelanggan.nama_pelanggan',
+                'transaksi.pedagang'
+            )
+            ->distinct()
+            ->get();
 
         // ========================================================
         // 2. AMBIL DATA KRITERIA
@@ -71,6 +71,7 @@ if ($bulan) {
             ->keyBy(function($item){
                 return $item->id_pelanggan . '_' . strtolower(trim($item->pedagang));
             });
+
         // ========================================================
         // 4. AMBIL ALTERNATIF SESUAI TAHUN
         // ========================================================
@@ -120,7 +121,8 @@ if ($bulan) {
                     'id_kriteria' => $k->id_kriteria
                 ])->value('nilai_mentah') ?? 0;
 
-                $method = "konversiFuzzy" . $kode;
+                // 🔥 REVISI 1: Menggunakan Helper getFuzzyMethod
+                $method = $this->getFuzzyMethod($kode, $bulan);
                 $fuzzy = method_exists($this, $method) ? $this->$method($nilai) : [0,0.25,0.5];
                 $row[$kode] = "(" . implode(",", $fuzzy) . ")";
             }
@@ -140,7 +142,8 @@ if ($bulan) {
                     'id_kriteria' => $k->id_kriteria
                 ])->value('nilai_mentah') ?? 0;
 
-                $method = "konversiFuzzy" . $kode;
+                // 🔥 REVISI 2: Menggunakan Helper getFuzzyMethod
+                $method = $this->getFuzzyMethod($kode, $bulan);
                 $f = method_exists($this, $method) ? $this->$method($nilai) : [0,0.25,0.5];
 
                 if ($k->atribut == 'Benefit') {
@@ -162,12 +165,12 @@ if ($bulan) {
         // 6. PROSES TOPSIS
         // ========================================================
         $penilaians = PenilaianKriteria::with('kriteria')
-        ->whereIn(
-            'id_alternatif',
-            $alternatifs->pluck('id_alternatif')
-        )
-        ->get()
-        ->groupBy('id_alternatif');
+            ->whereIn(
+                'id_alternatif',
+                $alternatifs->pluck('id_alternatif')
+            )
+            ->get()
+            ->groupBy('id_alternatif');
 
         $hasilAkhir = [];
 
@@ -185,7 +188,8 @@ if ($bulan) {
                 $kode = strtoupper($k->kode_kriteria);
                 $nilaiRiil = $nilaiAlt && isset($nilaiAlt[$kode]) ? $nilaiAlt[$kode]->nilai_mentah : 0;
 
-                $method = "konversiFuzzy" . $kode;
+                // 🔥 REVISI 3: Menggunakan Helper getFuzzyMethod
+                $method = $this->getFuzzyMethod($kode, $bulan);
                 $f[$kode] = method_exists($this, $method) ? $this->$method($nilaiRiil) : [0,0.25,0.5];
 
                 if ($k->atribut == 'Benefit') {
@@ -225,7 +229,7 @@ if ($bulan) {
             $nilaiV = ($dPlus + $dMin) == 0 ? 0 : $dMin / ($dPlus + $dMin);
 
             $hasilAkhir[] = [
-                'id_alternatif' => $alt->id_alternatif, // 🔥 REVISI: simpan ID Alternatif asli ke array hasil akhir
+                'id_alternatif' => $alt->id_alternatif,
                 'nama' => $alt->nama_alternatif,
                 'pedagang' => $alt->pedagang ?? '-',
                 'kode' => $alt->kode_alternatif,
@@ -264,20 +268,19 @@ if ($bulan) {
         }
 
         // ========================================================
-        // 🔥 REVISI UTAMA: SIMPAN ID ALTERNATIF KE DATABASE
+        // SIMPAN ID ALTERNATIF KE DATABASE
         // ========================================================
-        $queryDelete = DB::table('hasil_perhitungan')
-        ->where('tahun', $tahun);
-    
-    if ($bulan) {
-        $queryDelete->where('bulan', $bulan);
-    }
-    
-    $queryDelete->delete();
+        $queryDelete = DB::table('hasil_perhitungan')->where('tahun', $tahun);
+        
+        if ($bulan) {
+            $queryDelete->where('bulan', $bulan);
+        }
+        
+        $queryDelete->delete();
 
         foreach ($hasilAkhir as $index => $item) {
             DB::table('hasil_perhitungan')->insert([
-                'id_alternatif' => $item['id_alternatif'], // 🔥 REVISI: Masukkan ID unik ini ke database hasil_perhitungan
+                'id_alternatif' => $item['id_alternatif'],
                 'nama' => strtolower(trim($item['nama'])),
                 'pedagang' => strtolower(trim($item['pedagang'] ?? '-')),
                 'nilai_v' => $item['nilai_v'],
@@ -294,6 +297,7 @@ if ($bulan) {
         return response()->json([
             'status' => true,
             'tahun' => $tahun,
+            'bulan' => $bulan,
             'total_pelanggan' => $totalN,
             'hasil_akhir' => $hasilAkhir,
             'matriks_fuzzy' => $matriksFuzzy,
@@ -301,31 +305,69 @@ if ($bulan) {
         ]);
     }
 
-    // ================= HELPER =================
-    private function konversiFuzzyC1($n){
+    // ================= HELPER PEMILIH FUZZY =================
+    private function getFuzzyMethod($kode, $bulan)
+    {
+        if ($bulan) {
+            return "konversiFuzzyBulanan" . $kode;
+        }
+        return "konversiFuzzyTahunan" . $kode;
+    }
+
+    // ================= HELPER FUZZY TAHUNAN =================
+    private function konversiFuzzyTahunanC1($n){
         if ($n >= 20000) return [0.75,1,1];
         if ($n >= 10000) return [0.5,0.75,1];
         if ($n >= 5000) return [0.25,0.5,0.75];
         return [0,0.25,0.5];
     }
 
-    private function konversiFuzzyC2($n){
+    private function konversiFuzzyTahunanC2($n){
         if ($n >= 50000000) return [0.75,1,1];
         if ($n >= 25000000) return [0.5,0.75,1];
         if ($n >= 10000000) return [0.25,0.5,0.75];
         return [0,0.25,0.5];
     }
 
-    private function konversiFuzzyC3($n){
+    private function konversiFuzzyTahunanC3($n){
         if ($n >= 300) return [0.75,1,1];
         if ($n >= 150) return [0.5,0.75,1];
         if ($n >= 50) return [0.25,0.5,0.75];
         return [0,0.25,0.5];
     }
 
-    private function konversiFuzzyC4($n){
+    private function konversiFuzzyTahunanC4($n){
         if ($n >= 70) return [0.75,1,1];
         if ($n >= 50) return [0.5,0.75,1];
+        if ($n >= 20) return [0.25,0.5,0.75];
+        return [0,0.25,0.5];
+    }
+
+    // ================= HELPER FUZZY BULANAN =================
+    private function konversiFuzzyBulananC1($n){
+        if ($n >= 2000) return [0.75,1,1];
+        if ($n >= 1500) return [0.5,0.75,1];
+        if ($n >= 1000) return [0.25,0.5,0.75];
+        return [0,0.25,0.5];
+    }
+
+    private function konversiFuzzyBulananC2($n){
+        if ($n >= 5000000) return [0.75,1,1];
+        if ($n >= 3500000) return [0.5,0.75,1];
+        if ($n >= 2000000) return [0.25,0.5,0.75];
+        return [0,0.25,0.5];
+    }
+
+    private function konversiFuzzyBulananC3($n){
+        if ($n >= 30) return [0.75,1,1];
+        if ($n >= 20) return [0.5,0.75,1];
+        if ($n >= 10) return [0.25,0.5,0.75];
+        return [0,0.25,0.5];
+    }
+
+    private function konversiFuzzyBulananC4($n){
+        if ($n >= 60) return [0.75,1,1];
+        if ($n >= 40) return [0.5,0.75,1];
         if ($n >= 20) return [0.25,0.5,0.75];
         return [0,0.25,0.5];
     }
