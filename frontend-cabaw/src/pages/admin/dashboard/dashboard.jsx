@@ -5,7 +5,7 @@ import BestProductSection from "./BestProductSection";
 import { LoyalCustomerSection } from "./LoyalCustomerSection";
 import { DistribusiKategoriPelanggan } from "./DistribusiKategoriPelanggan";
 import NavbarAdmin from "./navbar_admin";
-import TampilanElemen from "./TampilanElemen";
+
 
 export default function Dashboard() {
   return (
@@ -19,7 +19,6 @@ export default function Dashboard() {
 
         {/* Header */}
         <div className="pt-16">
-          <TampilanElemen />
         </div>
 
         <main className="p-8 space-y-6">

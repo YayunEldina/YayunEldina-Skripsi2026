@@ -9,6 +9,7 @@ use App\Models\DetailTransaksi;
 use App\Models\Produk;
 use App\Models\Alternatif; 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class TransaksiController extends Controller
 {
@@ -27,7 +28,11 @@ class TransaksiController extends Controller
     {
         $tahun = $request->query('tahun');
         
-        $query = Transaksi::with(['pelanggan', 'detailTransaksi.produk']);
+        $query = Transaksi::with([
+            'pelanggan',
+            'admin',
+            'detailTransaksi.produk'
+        ]);
         
         if ($tahun && $tahun !== 'undefined') {
             $query->whereYear('tanggal', $tahun);
@@ -46,6 +51,7 @@ class TransaksiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'id_admin' => 'required|exists:admin,id_admin',
             'nama_pelanggan' => 'required',
             'tanggal' => 'required|date',
             'items' => 'required|array',
@@ -139,8 +145,11 @@ class TransaksiController extends Controller
                     $diskon = (float) $dataDiskon->diskon;
                 }
 
+              
+
                 // Simpan data transaksi induk
                 $transaksi = Transaksi::create([
+                    'id_admin' => $request->id_admin,
                     'id_pelanggan' => $pelanggan->id_pelanggan,
                     'tanggal' => $request->tanggal,
                     'total_pembelian' => $request->total_pembelian,

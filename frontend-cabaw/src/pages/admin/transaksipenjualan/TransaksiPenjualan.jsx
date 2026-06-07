@@ -166,12 +166,13 @@ const TransaksiPenjualan = () => {
                   <th className="border border-gray-300 px-4 py-3 text-center">Total Harga</th>
                   <th className="border border-gray-300 px-4 py-3 text-center">Tempat Transaksi</th>
                   <th className="border border-gray-300 px-4 py-3 text-center">Pedagang</th>
+                  <th className="border border-gray-300 px-4 py-3 text-center">Admin</th>
                   <th className="px-4 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="11" className="px-4 py-10 text-center italic">Memuat data dari 380.000+ records...</td></tr>
+                  <tr><td colSpan="12" className="px-4 py-10 text-center italic">Memuat data dari 380.000+ records...</td></tr>
                 ) : dataFiltered.length > 0 ? (
                   dataFiltered.map((item, i) => {
                     const details = item.detail_transaksi || [];
@@ -201,6 +202,7 @@ const TransaksiPenjualan = () => {
                         </td>
                         <td className="border border-gray-300 px-4 py-3 text-center">{item.tempat_transaksi || "-"}</td>
                         <td className="border border-gray-300 px-4 py-3 text-center">{item.pedagang || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">{item.admin?.nama_admin || "-"}</td>
                         <td className="border border-gray-300 px-4 py-3 text-center">
                           <div className="flex justify-center gap-2">
                             <img src={lihatIcon} alt="lihat" onClick={() => navigate(`/admin/lihat/transaksi/${item.id_transaksi}`)} className="w-8 h-8 p-1.5 rounded-md bg-green-100 cursor-pointer hover:bg-green-200 transition" />
@@ -213,7 +215,7 @@ const TransaksiPenjualan = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="11" className="px-4 py-10 text-center text-red-500 italic">
+                    <td colSpan="12" className="px-4 py-10 text-center text-red-500 italic">
                       Tidak ada data ditemukan.
                     </td>
                   </tr>

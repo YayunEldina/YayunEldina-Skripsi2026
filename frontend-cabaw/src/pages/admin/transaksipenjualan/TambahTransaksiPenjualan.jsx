@@ -18,6 +18,11 @@ import UyelPutih from "../../../assets/krupuk_uyelputih.png";
 const TambahTransaksiPenjualan = () => {
   const navigate = useNavigate();
 
+  const user = JSON.parse(localStorage.getItem("user"));
+
+console.log("USER LOGIN", user);
+console.log("ID ADMIN", user?.id_admin);
+
   const [activeFilter, setActiveFilter] = useState("Semua");
   const [namaPelanggan, setNamaPelanggan] = useState("");
   const [jenisKelamin, setJenisKelamin] = useState("");
@@ -221,6 +226,7 @@ const TambahTransaksiPenjualan = () => {
     }
 
     const payload = {
+      id_admin: user.id_admin,
       nama_pelanggan: namaPelanggan,
       jenis_kelamin: jenisKelamin,
       tanggal,

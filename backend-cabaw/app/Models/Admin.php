@@ -6,12 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class Admin extends Authenticatable // Gunakan Authenticatable agar bisa login
+class Admin extends Authenticatable
 {
     protected $table = 'admin';
     protected $primaryKey = 'id_admin';
-    // HAPUS incrementing false dan keyType string
-    
+
     protected $fillable = [
         'nama_admin',
         'username',
@@ -19,6 +18,11 @@ class Admin extends Authenticatable // Gunakan Authenticatable agar bisa login
         'password',
         'no_telepon',
         'alamat',
-        'foto_profil', 
+        'foto_profil',
     ];
+
+    public function transaksi()
+    {
+        return $this->hasMany(Transaksi::class, 'id_admin', 'id_admin');
+    }
 }

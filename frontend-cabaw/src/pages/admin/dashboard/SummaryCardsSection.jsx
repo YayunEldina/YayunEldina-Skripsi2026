@@ -1,21 +1,72 @@
-// SummaryCardsSection.jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
 export const SummaryCardsSection = () => {
-  const stats = [
-    { label: "Total Pelanggan", value: "150", icon: "👥", color: "bg-blue-500" },
-    { label: "Total Kriteria", value: "4", icon: "📊", color: "bg-green-500" }, // C1-C4
-    { label: "Total Transaksi", value: "1,240", icon: "🛒", color: "bg-purple-500" },
-    { label: "Omzet Tahunan", value: "Rp 540jt", icon: "💰", color: "bg-orange-500" },
+  const navigate = useNavigate();
+
+  const [stats, setStats] = useState({
+    total_pelanggan: 0,
+    total_kriteria: 0,
+    total_transaksi: 0,
+  });
+
+  useEffect(() => {
+    axios
+      .get("http://127.0.0.1:8000/api/dashboard-summary")
+      .then((res) => {
+        setStats(res.data);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }, []);
+
+  const cards = [
+    {
+      label: "Total Pelanggan",
+      value: stats.total_pelanggan,
+      icon: "👥",
+      color: "bg-blue-500",
+      link: "/admin/alternatif",
+    },
+    {
+      label: "Total Kriteria",
+      value: stats.total_kriteria,
+      icon: "📊",
+      color: "bg-green-500",
+      link: "/admin/kriteria",
+    },
+    {
+      label: "Total Transaksi",
+      value: stats.total_transaksi,
+      icon: "🛒",
+      color: "bg-purple-500",
+      link: "/admin/transaksi",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat, i) => (
-        <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {cards.map((card, i) => (
+        <div
+          key={i}
+          onClick={() => navigate(card.link)}
+          className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer"
+        >
           <div className="flex items-center space-x-4">
-            <div className={`p-3 rounded-xl text-white ${stat.color}`}>{stat.icon}</div>
+            <div className={`p-3 rounded-xl text-white ${card.color}`}>
+              {card.icon}
+            </div>
+
             <div>
-              <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-slate-800">{stat.value}</h3>
+              <p className="text-sm text-slate-500 font-medium">
+                {card.label}
+              </p>
+
+              <h3 className="text-2xl font-bold text-slate-800">
+                {card.value.toLocaleString("id-ID")}
+              </h3>
             </div>
           </div>
         </div>

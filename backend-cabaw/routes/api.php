@@ -60,3 +60,10 @@ Route::get('/hasil-perhitungan', function (Request $request) {
 Route::get('/laporan-diskon', [TransaksiController::class, 'laporanDiskon']);
 Route::match(['POST', 'PUT'], '/pelanggan/{id}', [AuthController::class, 'updateProfile']);
 Route::put('/admin/{id}', [AdminController::class, 'update']);
+Route::get('/dashboard-summary', function () {
+    return response()->json([
+        'total_pelanggan' => DB::table('alternatifs')->count(),
+        'total_kriteria'  => DB::table('kriterias')->count(),
+        'total_transaksi' => DB::table('transaksi')->count(),
+    ]);
+});

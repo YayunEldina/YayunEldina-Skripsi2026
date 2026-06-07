@@ -11,6 +11,7 @@ class Transaksi extends Model
     // HAPUS incrementing false dan keyType string
 
     protected $fillable = [
+        'id_admin',
         'tanggal',
         'total_pembelian', 
         'total_harga',
@@ -24,6 +25,11 @@ class Transaksi extends Model
     public function pelanggan()
     {
         return $this->belongsTo(Pelanggan::class, 'id_pelanggan', 'id_pelanggan');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(Admin::class, 'id_admin', 'id_admin');
     }
 
     public function detailTransaksi()
