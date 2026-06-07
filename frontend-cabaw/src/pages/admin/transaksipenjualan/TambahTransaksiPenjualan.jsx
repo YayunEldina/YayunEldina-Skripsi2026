@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import NavbarAdmin from "../dashboard/navbar_admin";
+import Swal from "sweetalert2";
 
 // IMPORT GAMBAR
 import Gorok from "../../../assets/krupuk_gorok.png";
@@ -246,7 +247,16 @@ console.log("ID ADMIN", user?.id_admin);
 
     try {
       await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
-      alert("Transaksi berhasil!");
+      await Swal.fire({
+        icon: "success",
+        title: "Transaksi Berhasil!",
+        text: "Data transaksi berhasil disimpan",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#1E3A5F",
+        timer: 2000,
+        timerProgressBar: true,
+      });
+      
       navigate("/admin/transaksi");
     } catch (error) {
       console.log("ERROR:", error.response?.data);

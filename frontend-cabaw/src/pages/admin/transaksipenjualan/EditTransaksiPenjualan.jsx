@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import NavbarAdmin from "../dashboard/navbar_admin";
+import Swal from "sweetalert2";
 
 // IMPORT GAMBAR
 import Gorok from "../../../assets/krupuk_gorok.png";
@@ -317,11 +318,28 @@ useEffect(() => {
 
     try {
       await axios.put(`http://127.0.0.1:8000/api/transaksi/${id}`, payload);
-      alert("Transaksi berhasil diperbarui!");
+    
+      await Swal.fire({
+        icon: "success",
+        title: "Update Berhasil!",
+        text: "Data transaksi berhasil diperbarui",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#1E3A5F",
+        timer: 2000,
+        timerProgressBar: true,
+      });
+    
       navigate("/admin/transaksi");
+    
     } catch (error) {
       console.log("ERROR:", error.response?.data);
-      alert("Gagal memperbarui transaksi");
+    
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Transaksi gagal diperbarui",
+        confirmButtonColor: "#dc2626",
+      });
     }
   };
 
