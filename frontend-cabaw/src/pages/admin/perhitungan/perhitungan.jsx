@@ -8,13 +8,16 @@ const Perhitungan = () => {
     return localStorage.getItem("tahunPerhitungan") || "2025";
   });
   
-  // 🔥 TAMBAHAN: State filter bulan (default "5" untuk Mei sesuai awal mula SPK bulanan)
+  // State filter bulan (default "5" untuk Mei sesuai awal mula SPK bulanan)
   const [bulanTerpilih, setBulanTerpilih] = useState(() => {
     return localStorage.getItem("bulanPerhitungan") || "5";
   });
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // 1. Tambahkan State Tab (Sesuai Revisi)
+  const [activeTab, setActiveTab] = useState("fuzzy");
 
   const namaBulan = {
     "5": "Mei", "6": "Juni", "7": "Juli", "8": "Agustus",
@@ -24,7 +27,7 @@ const Perhitungan = () => {
   const fetchData = async (tahun, bulan) => {
     setLoading(true);
     try {
-      // 🔥 REVISI: Mengonstruksi URL secara dinamis menggunakan parameter tahun dan bulan
+      // Mengonstruksi URL secara dinamis menggunakan parameter tahun dan bulan
       let url = `http://127.0.0.1:8000/api/proses-perhitungan?tahun=${tahun}`;
 
       // Filter bulan hanya dikirimkan jika memilih tahun 2026
@@ -43,7 +46,7 @@ const Perhitungan = () => {
     }
   };
 
-  // 🔥 REVISI: Masukkan tahunTerpilih dan bulanTerpilih sebagai dependency useEffect
+  // Masukkan tahunTerpilih dan bulanTerpilih sebagai dependency useEffect
   useEffect(() => {
     fetchData(tahunTerpilih, bulanTerpilih);
   }, [tahunTerpilih, bulanTerpilih]);
@@ -55,6 +58,30 @@ const Perhitungan = () => {
       item.nama.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
+
+  // 2. Buat Data Tab (Sesuai Revisi)
+  const tabs = [
+    {
+      id: "fuzzy",
+      label: "Konversi Fuzzy",
+    },
+    {
+      id: "normalisasi",
+      label: "Normalisasi R",
+    },
+    {
+      id: "terbobot",
+      label: "Matriks Y",
+    },
+    {
+      id: "ideal",
+      label: "Solusi Ideal",
+    },
+    {
+      id: "jarak",
+      label: "Jarak D+/D-",
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -94,7 +121,7 @@ const Perhitungan = () => {
             ))}
           </div>
 
-          {/* 🔥 TAMBAHAN: FILTER BULAN DINAMIS (Hanya tampil jika memilih tahun 2026) */}
+          {/* FILTER BULAN DINAMIS (Hanya tampil jika memilih tahun 2026) */}
           {tahunTerpilih === "2026" && (
             <div className="flex items-center gap-2 animate-fadeIn">
               <label className="text-sm font-medium text-slate-600">Bulan:</label>
@@ -123,73 +150,138 @@ const Perhitungan = () => {
           </div>
         </div>
 
+      {/* 3. MENU TAB MINIMALIS MELEBAR MEMENUHI LAYAR */}
+<div className="px-8 mt-6">
+  {/* Menggunakan w-full agar garis dasar abu-abu memanjang penuh */}
+  <div className="flex w-full border-b border-gray-200">
+    {tabs.map((tab) => {
+      const isSelected = activeTab === tab.id;
+      return (
+        <button
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id)}
+          // 🔥 PERUBAHAN: Ditambahkan 'flex-1' dan 'text-center' agar membagi ruang sama rata dan teks di tengah
+          className={`flex-1 text-center pb-3 text-sm font-semibold transition-all relative -mb-[1px] ${
+            isSelected
+              ? "text-[#1E3A5F] border-b-2 border-[#1E3A5F]"
+              : "text-slate-400 hover:text-slate-600 border-b-2 border-transparent"
+          }`}
+        >
+          {tab.label}
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+        {/* KONTEN UTAMA */}
         <div className="px-8 pb-10 mt-4">
           {dataHitung && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 space-y-10">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
               
-              {/* TAHAP 1: KONVERSI FUZZY */}
-              <Section title="Nilai Keterangan Kriteria Pelanggan yang Di Konversikan" />
-              <TableWrapper>
-                <Table
-                  loading={loading}
-                  headers={["Alternatif / Kriteria", "C1", "C2", "C3", "C4"]}
-                  rows={filterData(dataHitung?.matriks_fuzzy || []).map((item) => [
-                    item.nama, item.C1, item.C2, item.C3, item.C4
-                  ]) || []}
-                />
-              </TableWrapper>
+              {/* 4. Ganti Semua Section Menjadi Render Berdasarkan Tab (Sesuai Revisi) */}
+              
+              {/* TAB 1 - Konversi Fuzzy */}
+              {activeTab === "fuzzy" && (
+                <>
+                  <Section title="Nilai Keterangan Kriteria Pelanggan yang Di Konversikan" />
+                  <TableWrapper>
+                    <Table
+                      loading={loading}
+                      headers={["Alternatif / Kriteria", "C1", "C2", "C3", "C4"]}
+                      rows={filterData(dataHitung?.matriks_fuzzy || []).map((item) => [
+                        item.nama,
+                        item.C1,
+                        item.C2,
+                        item.C3,
+                        item.C4,
+                      ])}
+                    />
+                  </TableWrapper>
+                </>
+              )}
 
-              {/* TAHAP 2: NORMALISASI R */}
-              <Section title="Matrik Ternormalisasi R" />
-              <TableWrapper>
-                <Table
-                  loading={loading}
-                  headers={["Alternatif/Xij", "C1", "C2", "C3", "C4"]}
-                  rows={filterData(dataHitung?.matriks_r || []).map((item) => [
-                    item.nama, item.C1, item.C2, item.C3, item.C4
-                  ]) || []}
-                />
-              </TableWrapper>
+              {/* TAB 2 - Normalisasi R */}
+              {activeTab === "normalisasi" && (
+                <>
+                  <Section title="Matrik Ternormalisasi R" />
+                  <TableWrapper>
+                    <Table
+                      loading={loading}
+                      headers={["Alternatif/Xij", "C1", "C2", "C3", "C4"]}
+                      rows={filterData(dataHitung?.matriks_r || []).map((item) => [
+                        item.nama,
+                        item.C1,
+                        item.C2,
+                        item.C3,
+                        item.C4,
+                      ])}
+                    />
+                  </TableWrapper>
+                </>
+              )}
 
-              {/* TAHAP 3: MATRIKS TERBOBOT */}
-              <Section title="Matrik Ternormalisasi Terbobot Y" />
-              <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-700 mb-4 italic">
-                * Matriks ini merupakan hasil perkalian Matriks R dengan Bobot Fuzzy Kriteria.
-              </div>
-              <TableWrapper>
-                <Table
-                  loading={loading}
-                  headers={["Alternatif/rij", "C1", "C2", "C3", "C4"]}
-                  rows={filterData(dataHitung?.matriks_r || []).map((item) => [
-                    item.nama, item.C1, item.C2, item.C3, item.C4
-                  ])}
-                />
-              </TableWrapper>
+              {/* TAB 3 - Matriks Y */}
+              {activeTab === "terbobot" && (
+                <>
+                  <Section title="Matrik Ternormalisasi Terbobot Y" />
 
-              {/* TAHAP 4: SOLUSI IDEAL */}
-              <Section title="Solusi Ideal Positif (+) dan Negatif (-)" />
-              <TableWrapper>
-                <Table
-                  loading={loading}
-                  headers={[" ", "C1", "C2", "C3", "C4"]}
-                  rows={[
-                    ["y +j", "(1,1,1)", "(1,1,1)", "(1,1,1)", "(1,1,1)"],
-                    ["y -j", "(0,0,0)", "(0,0,0)", "(0,0,0)", "(0,0,0)"]
-                  ]}
-                />
-              </TableWrapper>
+                  <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-700 mb-4 italic">
+                    * Matriks ini merupakan hasil perkalian Matriks R dengan Bobot Fuzzy Kriteria.
+                  </div>
 
-              {/* TAHAP 5: JARAK D+ DAN D- */}
-              <Section title="Menghitung Jarak Nilai Alternatif Positif (+) dan Negatif (-)" />
-              <TableWrapper>
-                <Table
-                  loading={loading}
-                  headers={["Alternatif", "D+", "D-"]}
-                  rows={filterData(dataHitung?.hasil_akhir || []).map((item) => [
-                    item.nama, item.d_plus, item.d_min
-                  ])}
-                />
-              </TableWrapper>
+                  <TableWrapper>
+                    <Table
+                      loading={loading}
+                      headers={["Alternatif/rij", "C1", "C2", "C3", "C4"]}
+                      rows={filterData(dataHitung?.matriks_r || []).map((item) => [
+                        item.nama,
+                        item.C1,
+                        item.C2,
+                        item.C3,
+                        item.C4,
+                      ])}
+                    />
+                  </TableWrapper>
+                </>
+              )}
+
+              {/* TAB 4 - Solusi Ideal */}
+              {activeTab === "ideal" && (
+                <>
+                  <Section title="Solusi Ideal Positif (+) dan Negatif (-)" />
+
+                  <TableWrapper>
+                    <Table
+                      loading={loading}
+                      headers={[" ", "C1", "C2", "C3", "C4"]}
+                      rows={[
+                        ["y +j", "(1,1,1)", "(1,1,1)", "(1,1,1)", "(1,1,1)"],
+                        ["y -j", "(0,0,0)", "(0,0,0)", "(0,0,0)", "(0,0,0)"],
+                      ]}
+                    />
+                  </TableWrapper>
+                </>
+              )}
+
+              {/* TAB 5 - Jarak D+ D- */}
+              {activeTab === "jarak" && (
+                <>
+                  <Section title="Menghitung Jarak Nilai Alternatif Positif (+) dan Negatif (-)" />
+
+                  <TableWrapper>
+                    <Table
+                      loading={loading}
+                      headers={["Alternatif", "D+", "D-"]}
+                      rows={filterData(dataHitung?.hasil_akhir || []).map((item) => [
+                        item.nama,
+                        item.d_plus,
+                        item.d_min,
+                      ])}
+                    />
+                  </TableWrapper>
+                </>
+              )}
               
             </div>
           )}

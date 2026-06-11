@@ -61,11 +61,6 @@ const Alternatif = () => {
             <div className="h-4 w-[1px] bg-gray-300"></div>
           </div>
 
-          {/* 2. Tombol Filter */}
-          <button className="p-2 rounded-full border border-gray-200 text-slate-600 hover:bg-gray-50 transition shadow-sm flex-shrink-0">
-            <FiFilter size={16} />
-          </button>
-
           {/* 3. Search Bar */}
           <div className="relative group">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1E3A5F] transition-colors" />

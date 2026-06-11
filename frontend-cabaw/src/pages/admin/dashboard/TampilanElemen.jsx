@@ -23,10 +23,7 @@ const TampilanElemen = ({ searchTerm, setSearchTerm }) => {
         <div className="h-4 w-[1px] bg-gray-300"></div>
       </div>
 
-      {/* 2. Tombol Filter */}
-      <button className="p-2 rounded-full border border-gray-200 text-slate-600 hover:bg-gray-50 transition shadow-sm flex-shrink-0">
-        <FiFilter size={16} />
-      </button>
+     
 
       {/* 3. Search Bar */}
       <div className="relative group">

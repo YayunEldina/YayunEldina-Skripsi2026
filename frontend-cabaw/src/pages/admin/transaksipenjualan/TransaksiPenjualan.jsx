@@ -22,11 +22,17 @@ const TransaksiPenjualan = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchTransaksi = async (tahun, currentPage) => {
+  const fetchTransaksi = async (
+    tahun,
+    currentPage,
+    search = ""
+  ) => {
     setLoading(true);
     try {
       // Mengambil data dari backend yang sudah dipaginasi
-      const response = await axios.get(`http://127.0.0.1:8000/api/transaksi?tahun=${tahun}&page=${currentPage}`);
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/transaksi?tahun=${tahun}&page=${currentPage}&search=${search}`
+      );
       
       // Laravel paginate mengembalikan object, data asli ada di property .data
       setDataTransaksi(response.data.data); 
@@ -39,8 +45,12 @@ const TransaksiPenjualan = () => {
   };
 
   useEffect(() => {
-    fetchTransaksi(tahunTerpilih, page);
-  }, [tahunTerpilih, page]);
+    fetchTransaksi(
+      tahunTerpilih,
+      page,
+      searchTerm
+    );
+  }, [tahunTerpilih, page, searchTerm]);
 
   const formatTanggalHariIni = () => {
     return new Intl.DateTimeFormat("id-ID", {
@@ -52,10 +62,7 @@ const TransaksiPenjualan = () => {
   };
 
   // Filter hanya dilakukan pada data yang tampil di halaman saat ini
-  const dataFiltered = dataTransaksi.filter((item) => {
-    const nama = item.pelanggan?.nama_pelanggan?.toLowerCase() || "";
-    return nama.includes(searchTerm.toLowerCase());
-  });
+  const dataFiltered = dataTransaksi;
 
   const handleHapus = async (id) => {
     const result = await Swal.fire({
@@ -109,10 +116,6 @@ const TransaksiPenjualan = () => {
             <span className="text-base whitespace-nowrap">{formatTanggalHariIni()}</span>
             <div className="h-4 w-[1px] bg-gray-300"></div>
           </div>
-
-          <button className="p-2 rounded-full border border-gray-200 text-slate-600 hover:bg-gray-50 transition shadow-sm flex-shrink-0">
-            <FiFilter size={16} />
-          </button>
 
           <div className="relative group">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1E3A5F] transition-colors" />

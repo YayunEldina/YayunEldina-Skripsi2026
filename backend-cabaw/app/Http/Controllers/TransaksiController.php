@@ -27,21 +27,37 @@ class TransaksiController extends Controller
     public function index(Request $request)
     {
         $tahun = $request->query('tahun');
-        
+        $search = $request->query('search');
+    
         $query = Transaksi::with([
             'pelanggan',
             'admin',
             'detailTransaksi.produk'
         ]);
-        
+    
+        // Filter tahun
         if ($tahun && $tahun !== 'undefined') {
             $query->whereYear('tanggal', $tahun);
         }
-        
-        $data = $query->orderBy('tanggal', 'desc')
-                      ->orderBy('id_transaksi', 'desc')
-                      ->paginate(20);
-        
+    
+        // Search nama pelanggan
+        if ($search && trim($search) !== '') {
+    
+            $query->whereHas('pelanggan', function ($q) use ($search) {
+                $q->where(
+                    'nama_pelanggan',
+                    'like',
+                    '%' . $search . '%'
+                );
+            });
+    
+        }
+    
+        $data = $query
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id_transaksi', 'desc')
+            ->paginate(20);
+    
         return response()->json($data);
     }
 
