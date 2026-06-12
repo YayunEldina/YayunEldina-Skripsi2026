@@ -80,7 +80,7 @@ const NavbarMember = () => {
             {/* 🔘 AVATAR DENGAN FOTO ASLI ATAU PLACEHOLDER ICON */}
             {user.foto_profil ? (
               <img
-                src={`http://127.0.0.1:8000/storage/${user.foto_profil}`}
+              src={`${import.meta.env.VITE_STORAGE_URL}/${user.foto_profil}`}
                 alt="Profile"
                 className="w-9 h-9 rounded-full object-cover border border-gray-200"
               />

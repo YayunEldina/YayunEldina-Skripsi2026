@@ -10,7 +10,7 @@ const Kriteria = () => {
     const fetchKriteria = async () => {
       try {
         // PERBAIKAN URL: Menggunakan /api/kriteria sesuai hasil tes browser kamu
-        const response = await fetch("http://127.0.0.1:8000/api/kriteria");
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/kriteria`);
         const result = await response.json();
         
         // Memastikan result.success true dan result.data adalah array

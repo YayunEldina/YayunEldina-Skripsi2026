@@ -65,7 +65,7 @@ const EditTransaksiPenjualan = () => {
 
   // ================= LOAD MASTER ALTERNATIF =================
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/alternatif/list")
+    axios.get(`${import.meta.env.VITE_API_URL}/alternatif/list`)
       .then(res => setAlternatifList(res.data))
       .catch(() => console.log("Gagal ambil alternatif"));
   }, []);
@@ -76,7 +76,9 @@ useEffect(() => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/api/transaksi/${id}`);
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/transaksi/${id}`
+      );
       const data = res.data.data || res.data;
 
       const currentNama = data.pelanggan?.nama_pelanggan || data.nama_pelanggan || "";
@@ -204,7 +206,7 @@ useEffect(() => {
 
       const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
 
-      const resKuota = await axios.get("http://127.0.0.1:8000/api/transaksi/cek-kuota", {
+      const resKuota = await axios.get(`${import.meta.env.VITE_API_URL}/transaksi/cek-kuota`, {
         params: {
           id_pelanggan: idAlternatifKirim,
           pedagang: pedagang.trim(), // ✅ Fix Bug 3: pastikan trim
@@ -216,7 +218,7 @@ useEffect(() => {
       const paramsSPK = { tahun: tahunSumber };
       if (bulanSumber !== null) paramsSPK.bulan = bulanSumber;
 
-      const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", {
+      const resSPK = await axios.get(`${import.meta.env.VITE_API_URL}/hasil-perhitungan`, {
         params: paramsSPK,
       });
       const dataSPK = resSPK.data || [];
@@ -317,7 +319,7 @@ useEffect(() => {
     };
 
     try {
-      await axios.put(`http://127.0.0.1:8000/api/transaksi/${id}`, payload);
+      await axios.put(`${import.meta.env.VITE_API_URL}/transaksi/${id}`, payload);
     
       await Swal.fire({
         icon: "success",

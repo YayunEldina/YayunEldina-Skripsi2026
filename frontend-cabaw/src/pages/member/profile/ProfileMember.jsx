@@ -38,7 +38,9 @@ const ProfileMember = () => {
       });
 
       if (storedUser.foto_profil) {
-        setAvatarPreview(`http://127.0.0.1:8000/storage/${storedUser.foto_profil}`);
+        setAvatarPreview(
+          `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
+        );
       }
     }
   }, []);
@@ -93,7 +95,7 @@ const ProfileMember = () => {
 
     try {
       const response = await axios.post(
-        `http://127.0.0.1:8000/api/pelanggan/${formData.id_pelanggan}`,
+        `${import.meta.env.VITE_API_URL}/pelanggan/${formData.id_pelanggan}`,
         dataToSend,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

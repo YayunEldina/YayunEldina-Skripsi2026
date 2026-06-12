@@ -48,7 +48,7 @@ console.log("ID ADMIN", user?.id_admin);
   const [isLoadingDiskon, setIsLoadingDiskon] = useState(false);
 
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/alternatif/list")
+    axios.get(`${import.meta.env.VITE_API_URL}/alternatif/list`)
       .then(res => {
         setAlternatifList(res.data);
       })
@@ -121,7 +121,7 @@ console.log("ID ADMIN", user?.id_admin);
         const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
         
         // 2. KODE ASLI ANDA: Cek Kuota Transaksi Bulanan Pelanggan ke Backend
-        const resKuota = await axios.get("http://127.0.0.1:8000/api/transaksi/cek-kuota", {
+        const resKuota = await axios.get(`${import.meta.env.VITE_API_URL}/transaksi/cek-kuota`, {
           params: {
             id_pelanggan: idAlternatifKirim,
             pedagang: pedagang.trim(),
@@ -137,7 +137,7 @@ console.log("ID ADMIN", user?.id_admin);
           paramsSPK.bulan = bulanSumber;
         }
 
-        const resSPK = await axios.get("http://127.0.0.1:8000/api/hasil-perhitungan", { params: paramsSPK });
+        const resSPK = await axios.get(`${import.meta.env.VITE_API_URL}/hasil-perhitungan`, { params: paramsSPK });
         const dataSPK = resSPK.data || [];
 
         // Cari pelanggan di data peringkat SPK yang didapatkan
@@ -246,7 +246,7 @@ console.log("ID ADMIN", user?.id_admin);
     };
 
     try {
-      await axios.post("http://127.0.0.1:8000/api/transaksi", payload);
+      await axios.post(`${import.meta.env.VITE_API_URL}/transaksi`, payload);
       await Swal.fire({
         icon: "success",
         title: "Transaksi Berhasil!",

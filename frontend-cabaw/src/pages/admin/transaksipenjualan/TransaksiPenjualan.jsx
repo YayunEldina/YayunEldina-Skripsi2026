@@ -31,7 +31,7 @@ const TransaksiPenjualan = () => {
     try {
       // Mengambil data dari backend yang sudah dipaginasi
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/transaksi?tahun=${tahun}&page=${currentPage}&search=${search}`
+        `${import.meta.env.VITE_API_URL}/transaksi?tahun=${tahun}&page=${currentPage}&search=${search}`
       );
       
       // Laravel paginate mengembalikan object, data asli ada di property .data
@@ -78,7 +78,9 @@ const TransaksiPenjualan = () => {
   
     if (result.isConfirmed) {
       try {
-        await axios.delete(`http://127.0.0.1:8000/api/transaksi/${id}`);
+        await axios.delete(
+          `${import.meta.env.VITE_API_URL}/transaksi/${id}`
+        );
   
         await Swal.fire({
           title: "Berhasil!",

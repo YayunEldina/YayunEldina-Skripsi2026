@@ -40,7 +40,9 @@ const ProfileAdmin = () => {
 
       // Sinkronisasi pratinjau foto profil jika sudah ada di database
       if (storedUser.foto_profil) {
-        setAvatarPreview(`http://127.0.0.1:8000/storage/${storedUser.foto_profil}`);
+        setAvatarPreview(
+          `${import.meta.env.VITE_API_URL}/storage/${storedUser.foto_profil}`
+        );
       }
     }
   }, []);
@@ -92,7 +94,7 @@ const ProfileAdmin = () => {
         dataToSend.append("foto_profil", avatarFile);
 
         response = await axios.post(
-          `http://127.0.0.1:8000/api/admin/${formData.id_admin}`,
+          `${import.meta.env.VITE_API_URL}/api/admin/${formData.id_admin}`,
           dataToSend,
           {
             headers: {
@@ -115,7 +117,7 @@ const ProfileAdmin = () => {
         if (formData.password) dataToSend.password = formData.password;
 
         response = await axios.put(
-          `http://127.0.0.1:8000/api/admin/${formData.id_admin}`,
+          `${import.meta.env.VITE_API_URL}/api/admin/${formData.id_admin}`,
           dataToSend,
           {
             headers: {

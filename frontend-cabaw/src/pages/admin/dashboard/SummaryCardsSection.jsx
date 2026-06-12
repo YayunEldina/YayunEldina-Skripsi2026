@@ -13,7 +13,7 @@ export const SummaryCardsSection = () => {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:8000/api/dashboard-summary")
+      .get(`${import.meta.env.VITE_API_URL}/api/dashboard-summary`)
       .then((res) => {
         setStats(res.data);
       })

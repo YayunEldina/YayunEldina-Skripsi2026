@@ -26,10 +26,7 @@ export default function MemberDashboard() {
           return;
         }
 
-        const response = await fetch(
-          "http://127.0.0.1:8000/api/proses-perhitungan?tahun=2025"
-        );
-
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=2025`);
         const result = await response.json();
 
         if (!result || !result.hasil_akhir) {

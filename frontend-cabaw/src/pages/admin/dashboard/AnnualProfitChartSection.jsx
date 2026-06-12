@@ -33,7 +33,7 @@ export const AnnualProfitChartSection = () => {
     try {
   
       const res = await axios.get(
-        "http://127.0.0.1:8000/api/omset-tahunan"
+        `${import.meta.env.VITE_API_URL}/api/omset-tahunan`
       );
   
       const hasil = res.data;

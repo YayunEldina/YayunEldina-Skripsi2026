@@ -55,7 +55,7 @@ export default function LihatTransaksiPenjualan() {
     const fetchData = async () => {
       try {
         const res = await axios.get(
-          `http://127.0.0.1:8000/api/transaksi/${id}`
+          `${import.meta.env.VITE_API_URL}/transaksi/${id}`
         );
 
         const data = res.data.data || res.data;

@@ -28,7 +28,7 @@ const Perhitungan = () => {
     setLoading(true);
     try {
       // Mengonstruksi URL secara dinamis menggunakan parameter tahun dan bulan
-      let url = `http://127.0.0.1:8000/api/proses-perhitungan?tahun=${tahun}`;
+      let url = `${import.meta.env.VITE_API_URL}/api/proses-perhitungan?tahun=${tahun}`;
 
       // Filter bulan hanya dikirimkan jika memilih tahun 2026
       if (tahun === "2026" && bulan) {

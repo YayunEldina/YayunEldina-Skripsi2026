@@ -122,7 +122,7 @@ const NavbarAdmin = () => {
             <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 group-hover:border-gray-400 transition">
               {admin.foto_profil ? (
                 <img
-                  src={`http://127.0.0.1:8000/storage/${admin.foto_profil}`}
+                src={`${import.meta.env.VITE_API_URL}/storage/${admin.foto_profil}`}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />

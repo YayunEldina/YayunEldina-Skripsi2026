@@ -26,8 +26,7 @@ const Ranking = () => {
     setLoading(true);
     try {
       // 🔥 REVISI: Menggunakan kombinasi parameter tahun dan bulan secara dinamis
-      let url = `http://127.0.0.1:8000/api/proses-perhitungan?tahun=${tahun}`;
-
+      let url = `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahun}`;
       // Filter bulan hanya dikirimkan jika memilih tahun 2026
       if (tahun === "2026" && bulan) {
         url += `&bulan=${bulan}`;
