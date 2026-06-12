@@ -19,7 +19,7 @@ const Pemesanan = () => {
 
   const checkDiscount = async (nama) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/proses-perhitungan?tahun=2025`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=2025`)
       const result = await res.json();
       const data = result.hasil_akhir.find(item => item.nama.toLowerCase() === nama.toLowerCase());
       if (data) setDiskonPersen(data.diskon);
