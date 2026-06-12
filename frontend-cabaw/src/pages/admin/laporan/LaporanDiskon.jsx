@@ -31,7 +31,7 @@ const LaporanDiskon = () => {
       setLoading(true);
       try {
         const resLaporan = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/laporan-diskon?tahun=${tahun}`
+          `${import.meta.env.VITE_API_URL}/laporan-diskon?tahun=${tahun}`
         );
         setLaporanTransaksi(resLaporan.data || []);
       } catch (err) {
@@ -63,7 +63,7 @@ const LaporanDiskon = () => {
         }
   
         try {
-          let url = `${import.meta.env.VITE_API_URL}/api/hasil-perhitungan?tahun=${tahunSumberSPK}`;
+          let url = `${import.meta.env.VITE_API_URL}/hasil-perhitungan?tahun=${tahunSumberSPK}`;
           if (bulanSumber !== null) {
             url += `&bulan=${bulanSumber}`;
           } else {

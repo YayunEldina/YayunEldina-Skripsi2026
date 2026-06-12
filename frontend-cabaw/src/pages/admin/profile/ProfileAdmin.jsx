@@ -94,7 +94,7 @@ const ProfileAdmin = () => {
         dataToSend.append("foto_profil", avatarFile);
 
         response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/admin/${formData.id_admin}`,
+          `${import.meta.env.VITE_API_URL}/admin/${formData.id_admin}`,
           dataToSend,
           {
             headers: {
@@ -117,7 +117,7 @@ const ProfileAdmin = () => {
         if (formData.password) dataToSend.password = formData.password;
 
         response = await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/admin/${formData.id_admin}`,
+          `${import.meta.env.VITE_API_URL}/admin/${formData.id_admin}`,
           dataToSend,
           {
             headers: {

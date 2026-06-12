@@ -12,7 +12,7 @@ export const LoyalCustomerSection = () => {
 
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/proses-perhitungan?tahun=${tahunTerbaru}`
+          `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahunTerbaru}`
         );
 
         const result = await response.json();

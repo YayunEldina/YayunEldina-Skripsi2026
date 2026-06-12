@@ -24,7 +24,7 @@ const Alternatif = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/alternatifs?page=${page}&search=${search}`
+        `${import.meta.env.VITE_API_URL}/alternatifs?page=${page}&search=${search}`
       );
       const result = await response.json();
       setAlternatifs(result.data);

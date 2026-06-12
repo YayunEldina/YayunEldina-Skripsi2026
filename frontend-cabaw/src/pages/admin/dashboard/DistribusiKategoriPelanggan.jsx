@@ -32,7 +32,7 @@ export const DistribusiKategoriPelanggan = () => {
       setLoading(true);
 
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/proses-perhitungan?tahun=${tahun}`
+        `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahun}`
       );
 
       const hasil = res.data?.hasil_akhir || [];

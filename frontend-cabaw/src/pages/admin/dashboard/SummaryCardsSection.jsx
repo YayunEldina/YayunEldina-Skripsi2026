@@ -13,7 +13,7 @@ export const SummaryCardsSection = () => {
 
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_API_URL}/api/dashboard-summary`)
+      .get(`${import.meta.env.VITE_API_URL}/dashboard-summary`)
       .then((res) => {
         setStats(res.data);
       })
