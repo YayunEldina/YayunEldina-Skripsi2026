@@ -1,17 +1,17 @@
 import React from "react";
 
-import Gorok from "../../../assets/krupuk_gorok.png";
+import UyelPutih from "../../../assets/krupuk_uyelputih.png";
+import UyelKuning from "../../../assets/krupuk_uyelkuning.png";
 import Ikan from "../../../assets/krupuk_ikan.png";
-import Jari from "../../../assets/krupuk_jari.png";
-import Keong from "../../../assets/krupuk_keong.png";
+import Padi from "../../../assets/krupuk_padi.png";
 
 export default function BestProductSection() {
 
   const bestSeller = [
-    { name: "Krupuk Gorok", img: Gorok },
+    { name: "Krupuk Uyel Putih", img: UyelPutih },
+    { name: "Krupuk Uyel Kuning", img: UyelKuning },
     { name: "Krupuk Ikan", img: Ikan },
-    { name: "Krupuk Jari", img: Jari },
-    { name: "Krupuk Keong", img: Keong },
+    { name: "Krupuk Padi", img: Padi },
   ];
 
   return (
