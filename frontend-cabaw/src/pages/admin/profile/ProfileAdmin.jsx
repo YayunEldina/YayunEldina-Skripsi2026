@@ -41,7 +41,7 @@ const ProfileAdmin = () => {
       // Sinkronisasi pratinjau foto profil jika sudah ada di database
       if (storedUser.foto_profil) {
         setAvatarPreview(
-          `${import.meta.env.VITE_API_URL}/storage/${storedUser.foto_profil}`
+          `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
         );
       }
     }
