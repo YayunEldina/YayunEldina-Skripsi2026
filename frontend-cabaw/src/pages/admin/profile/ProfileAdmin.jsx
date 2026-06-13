@@ -39,29 +39,12 @@ const ProfileAdmin = () => {
       });
 
       // Sinkronisasi pratinjau foto profil jika sudah ada di database
-      // Sinkronisasi pratinjau foto profil jika sudah ada di database
+    
       if (storedUser.foto_profil) {
-        console.log("RAW foto_profil:", storedUser.foto_profil);
-      
-        let path = storedUser.foto_profil;
-      
-        // ambil hanya bagian setelah admin_avatar
-        if (path.includes("admin_avatar/")) {
-          path = path.split("admin_avatar/")[1];
-          path = "admin_avatar/" + path;
-        }
-      
-        const finalUrl = `${import.meta.env.VITE_STORAGE_URL}/${path}`;
-      
-        console.log("FINAL URL:", finalUrl);
-      
-        setAvatarPreview(finalUrl);
+        setAvatarPreview(
+          `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
+        );
       }
-      // if (storedUser.foto_profil) {
-      //   setAvatarPreview(
-      //     `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
-      //   );
-      // }
     }
   }, []);
 
