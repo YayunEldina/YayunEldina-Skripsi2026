@@ -40,14 +40,20 @@ const ProfileAdmin = () => {
 
       // Sinkronisasi pratinjau foto profil jika sudah ada di database
       // Sinkronisasi pratinjau foto profil jika sudah ada di database
-if (storedUser.foto_profil) {
-  // Hapus prefix api/storage/ atau storage/ jika tidak sengaja terbawa dari database
-  const cleanPath = storedUser.foto_profil
-    .replace("api/storage/", "")
-    .replace("storage/", "");
-
-  setAvatarPreview(`${import.meta.env.VITE_STORAGE_URL}/${cleanPath}`);
-}
+      if (storedUser.foto_profil) {
+        console.log("foto_profil:", storedUser.foto_profil);
+      
+        let path = storedUser.foto_profil;
+      
+        path = path
+          .replace(/^\/?storage\//, "")
+          .replace(/^\/?api\/storage\//, "")
+          .replace(/^storage\//, "");
+      
+        console.log("final URL:", `${import.meta.env.VITE_STORAGE_URL}/${path}`);
+      
+        setAvatarPreview(`${import.meta.env.VITE_STORAGE_URL}/${path}`);
+      }
       // if (storedUser.foto_profil) {
       //   setAvatarPreview(
       //     `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
