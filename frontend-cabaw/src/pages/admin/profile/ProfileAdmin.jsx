@@ -39,11 +39,20 @@ const ProfileAdmin = () => {
       });
 
       // Sinkronisasi pratinjau foto profil jika sudah ada di database
-      if (storedUser.foto_profil) {
-        setAvatarPreview(
-          `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
-        );
-      }
+      // Sinkronisasi pratinjau foto profil jika sudah ada di database
+if (storedUser.foto_profil) {
+  // Hapus prefix api/storage/ atau storage/ jika tidak sengaja terbawa dari database
+  const cleanPath = storedUser.foto_profil
+    .replace("api/storage/", "")
+    .replace("storage/", "");
+
+  setAvatarPreview(`${import.meta.env.VITE_STORAGE_URL}/${cleanPath}`);
+}
+      // if (storedUser.foto_profil) {
+      //   setAvatarPreview(
+      //     `${import.meta.env.VITE_STORAGE_URL}/${storedUser.foto_profil}`
+      //   );
+      // }
     }
   }, []);
 
@@ -130,8 +139,12 @@ const ProfileAdmin = () => {
       if (response.data && response.data.user) {
         const updatedAdminFromBackend = response.data.user;
         const oldUser = JSON.parse(localStorage.getItem("user")) || {};
-
-        // Perbarui data admin di localStorage agar nama & foto di navbar langsung berubah
+      
+        // Bersihkan juga data foto_profil baru dari backend sebelum masuk localStorage
+        const cleanFotoProfil = updatedAdminFromBackend.foto_profil
+          ? updatedAdminFromBackend.foto_profil.replace("api/storage/", "").replace("storage/", "")
+          : "";
+      
         const updatedUser = {
           ...oldUser,
           id_admin: updatedAdminFromBackend.id_admin,
@@ -140,11 +153,11 @@ const ProfileAdmin = () => {
           jenis_kelamin: updatedAdminFromBackend.jenis_kelamin, 
           no_telepon: updatedAdminFromBackend.no_telepon,
           alamat: updatedAdminFromBackend.alamat,
-          foto_profil: updatedAdminFromBackend.foto_profil, 
+          foto_profil: cleanFotoProfil, // ✨ Menggunakan path yang sudah bersih
         };
-
+      
         localStorage.setItem("user", JSON.stringify(updatedUser));
-
+      
         Swal.fire({
           icon: "success",
           title: "Berhasil!",
