@@ -25,41 +25,61 @@ class TransaksiController extends Controller
      * Menampilkan daftar transaksi dengan pagination
      */
     public function index(Request $request)
-    {
-        $tahun = $request->query('tahun');
-        $search = $request->query('search');
-    
-        $query = Transaksi::with([
-            'pelanggan',
-            'admin',
-            'detailTransaksi.produk'
+{
+    $tahun = $request->tahun;
+    $bulan = $request->bulan;
+    $search = $request->search;
+
+    $query = Transaksi::query()
+        ->select([
+            'id_transaksi',
+            'id_pelanggan',
+            'id_admin',
+            'tanggal',
+            'total_pembelian',
+            'total_harga',
+            'tempat_transaksi',
+            'pedagang',
+            'diskon'
+        ])
+        ->with([
+            'pelanggan:id_pelanggan,nama_pelanggan,jenis_kelamin',
+            'admin:id_admin,nama_admin',
+            'detailTransaksi:id_detail,id_transaksi,id_produk,jumlah',
+            'detailTransaksi.produk:id_produk,nama_produk,harga'
         ]);
-    
-        // Filter tahun
-        if ($tahun && $tahun !== 'undefined') {
-            $query->whereYear('tanggal', $tahun);
+
+        if ($tahun) {
+            $query->whereBetween('tanggal', [
+                "$tahun-01-01",
+                "$tahun-12-31"
+            ]);
         }
-    
-        // Search nama pelanggan
-        if ($search && trim($search) !== '') {
-    
-            $query->whereHas('pelanggan', function ($q) use ($search) {
-                $q->where(
-                    'nama_pelanggan',
-                    'like',
-                    '%' . $search . '%'
-                );
-            });
-    
+
+        if ($bulan) {
+            $query->whereMonth('tanggal', $bulan);
         }
-    
-        $data = $query
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('id_transaksi', 'desc')
-            ->paginate(20);
-    
-        return response()->json($data);
+
+    if ($search) {
+        $query->whereHas('pelanggan', function ($q) use ($search) {
+            $q->where(
+                'nama_pelanggan',
+                'like',
+                "%{$search}%"
+            );
+        });
+
+        logger($query->toSql());
+
     }
+
+    $data = $query
+        ->latest('tanggal')
+        ->latest('id_transaksi')
+        ->paginate(10);
+
+    return response()->json($data);
+}
 
     /**
      * Menyimpan transaksi baru (Create)

@@ -30,27 +30,35 @@ export const DistribusiKategoriPelanggan = () => {
   const fetchKategori = async () => {
     try {
       setLoading(true);
-
+  
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahun}`
+        `${import.meta.env.VITE_API_URL}/ranking?tahun=${tahun}`
       );
-
-      const hasil = res.data?.hasil_akhir || [];
-
+  
+      const hasil = res.data?.data || [];
+  
       let tinggi = 0;
       let sedang = 0;
       let rendah = 0;
-
+  
       hasil.forEach((item) => {
-        const status = item.status_prioritas;
-
-        if (status === "Prioritas Tinggi") tinggi++;
-        else if (status === "Prioritas Sedang") sedang++;
-        else rendah++;
+        const status = item.prioritas;
+  
+        if (status === "Prioritas Tinggi") {
+          tinggi++;
+        } else if (status === "Prioritas Sedang") {
+          sedang++;
+        } else if (status === "Prioritas Rendah") {
+          rendah++;
+        }
       });
-
-      setSummary({ tinggi, sedang, rendah });
-
+  
+      setSummary({
+        tinggi,
+        sedang,
+        rendah,
+      });
+  
       setDataKategori({
         labels: ["Tinggi", "Sedang", "Rendah"],
         datasets: [

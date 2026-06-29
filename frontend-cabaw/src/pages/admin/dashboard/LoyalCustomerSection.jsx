@@ -12,13 +12,13 @@ export const LoyalCustomerSection = () => {
 
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahunTerbaru}`
-        );
+          `${import.meta.env.VITE_API_URL}/ranking?tahun=${tahunTerbaru}`
+         );
 
         const result = await response.json();
 
         // Ambil Top 3
-        const top3 = (result.hasil_akhir || [])
+        const top3 = (result.data || [])
           .slice(0, 3)
           .map((item, index) => ({
             rank: index + 1,

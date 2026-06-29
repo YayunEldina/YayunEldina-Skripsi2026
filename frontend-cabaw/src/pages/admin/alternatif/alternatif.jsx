@@ -8,6 +8,7 @@ const Alternatif = () => {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // 2. FUNGSI TANGGAL OTOMATIS
   const formatTanggal = () => {
@@ -37,13 +38,21 @@ const Alternatif = () => {
   }, []);
 
   // 4. USE EFFECT (Initial Load & Search Debounce)
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchAlternatif(1, searchTerm);
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, fetchAlternatif]);
+  // Load pertama kali
+useEffect(() => {
+  fetchAlternatif();
+}, []);
 
+// Search debounce
+useEffect(() => {
+  if (searchTerm === "") return;
+
+  const timer = setTimeout(() => {
+    fetchAlternatif(1, searchTerm);
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [searchTerm]);
   return (
     <div className="min-h-screen bg-white">
 

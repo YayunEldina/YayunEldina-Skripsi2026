@@ -19,11 +19,30 @@ const TransaksiPenjualan = () => {
   const [tahunTerpilih, setTahunTerpilih] = useState(() => {
     return localStorage.getItem("tahunTransaksi") || "2021";
   });
+  const [bulanTerpilih, setBulanTerpilih] = useState(() => {
+    return localStorage.getItem("bulanTransaksi") || "";
+  });
+  
+  const namaBulan = {
+    "1": "Januari",
+    "2": "Februari",
+    "3": "Maret",
+    "4": "April",
+    "5": "Mei",
+    "6": "Juni",
+    "7": "Juli",
+    "8": "Agustus",
+    "9": "September",
+    "10": "Oktober",
+    "11": "November",
+    "12": "Desember",
+  };
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchTransaksi = async (
     tahun,
+    bulan,
     currentPage,
     search = ""
   ) => {
@@ -31,7 +50,7 @@ const TransaksiPenjualan = () => {
     try {
       // Mengambil data dari backend yang sudah dipaginasi
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/transaksi?tahun=${tahun}&page=${currentPage}&search=${search}`
+        `${import.meta.env.VITE_API_URL}/transaksi?tahun=${tahun}&bulan=${bulan}&page=${currentPage}&search=${search}`
       );
       
       // Laravel paginate mengembalikan object, data asli ada di property .data
@@ -47,10 +66,11 @@ const TransaksiPenjualan = () => {
   useEffect(() => {
     fetchTransaksi(
       tahunTerpilih,
+      bulanTerpilih,
       page,
       searchTerm
     );
-  }, [tahunTerpilih, page, searchTerm]);
+  }, [tahunTerpilih, bulanTerpilih, page, searchTerm]);
 
   const formatTanggalHariIni = () => {
     return new Intl.DateTimeFormat("id-ID", {
@@ -105,58 +125,169 @@ const TransaksiPenjualan = () => {
   return (
     <div className="min-h-screen bg-white">
 
-    {/* Navbar */}
-    <NavbarAdmin />
+   {/* Navbar */}
+<NavbarAdmin />
 
-    {/* Content (karena navbar fixed) */}
-    <div className="pt-16">
+{/* Content */}
+<div className="pt-20 px-10">
 
-        
-        {/* Search & Filter Section */}
-        <div className="flex items-center justify-start px-8 py-4 bg-white gap-6 mt-4">
-          <div className="flex items-center gap-4 text-slate-500 font-medium">
-            <span className="text-base whitespace-nowrap">{formatTanggalHariIni()}</span>
-            <div className="h-4 w-[1px] bg-gray-300"></div>
-          </div>
+  {/* Header Card */}
+  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-6">
+    <h1 className="text-2xl font-bold text-slate-800">
+      Transaksi Penjualan
+    </h1>
 
-          <div className="relative group">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1E3A5F] transition-colors" />
-            <input
-              type="text"
-              placeholder="Cari nama pelanggan..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-6 py-2 w-64 bg-white border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/10 focus:border-[#1E3A5F] transition-all"
-            />
-          </div>
-        </div>
+    <p className="text-slate-500 text-sm mt-1">
+      Riwayat transaksi penjualan kerupuk berdasarkan periode yang dipilih
+    </p>
+  </div>
+
+  {/* Search & Filter Section */}
+  <div className="mt-6">
+  <div className="flex items-center flex-wrap gap-4">
+
+    <span className="text-sm font-medium text-slate-500">
+      {formatTanggalHariIni()}
+    </span>
+
+    <div className="h-5 w-px bg-slate-300" />
+
+    {/* Tahun */}
+    <select
+      value={tahunTerpilih}
+      onChange={(e) => {
+        setTahunTerpilih(e.target.value);
+        localStorage.setItem(
+          "tahunTransaksi",
+          e.target.value
+        );
+        setPage(1);
+      }}
+      className="
+      bg-white
+      border
+      border-slate-300
+      rounded-xl
+      px-4
+      py-2.5
+      text-sm
+      shadow-sm
+      "
+    >
+      {[2021, 2022, 2023, 2024, 2025, 2026].map((tahun) => (
+        <option
+          key={tahun}
+          value={tahun}
+        >
+          {tahun}
+        </option>
+      ))}
+    </select>
+
+    {/* Bulan */}
+    <select
+      value={bulanTerpilih}
+      onChange={(e) => {
+        setBulanTerpilih(e.target.value);
+        localStorage.setItem(
+          "bulanTransaksi",
+          e.target.value
+        );
+        setPage(1);
+      }}
+      className="
+      bg-white
+      border
+      border-slate-300
+      rounded-xl
+      px-4
+      py-2.5
+      text-sm
+      shadow-sm
+      "
+    >
+      <option value="">
+        Semua Bulan
+      </option>
+
+      {Object.entries(namaBulan).map(
+        ([num, nama]) => (
+          <option
+            key={num}
+            value={num}
+          >
+            {nama}
+          </option>
+        )
+      )}
+    </select>
+
+    {/* Search */}
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="Cari nama pelanggan..."
+        value={searchTerm}
+        onChange={(e) =>
+          setSearchTerm(e.target.value)
+        }
+        className="
+        w-72
+        pl-10
+        pr-4
+        py-2.5
+        border
+        border-slate-300
+        rounded-xl
+        text-sm
+        "
+      />
+
+      <FiSearch
+        className="
+        absolute
+        left-3
+        top-1/2
+        -translate-y-1/2
+        text-slate-400
+        "
+      />
+    </div>
+
+  </div>
+</div>
 
         {/* Year Filter & Add Button */}
-        <div className="flex items-center justify-between px-8 mt-2">
-          <div className="flex gap-2">
-            {["2021", "2022", "2023", "2024", "2025", "2026"].map((y) => (
-              <button
-                key={y}
-                onClick={() => {
-                  setTahunTerpilih(y);
-                  localStorage.setItem("tahunTransaksi", y);
-                  setPage(1);
-                }}
-                className={`px-5 py-2 rounded-full border text-sm transition-all ${
-                  y === tahunTerpilih ? "bg-[#1E3A5F] text-white" : "bg-white text-slate-600"
-                }`}
-              >
-                {y}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => navigate("/admin/tambah/transaksi")} className="flex items-center gap-2 bg-[#1E3A5F] text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md">
-            <img src={tambahIcon} alt="tambah" className="w-4 h-4" /> Tambah transaksi
-          </button>
-        </div>
+        <div className="flex justify-end mt-4">
+  <button
+    onClick={() =>
+      navigate("/admin/tambah/transaksi")
+    }
+    className="
+    flex
+    items-center
+    gap-2
+    bg-[#1E3A5F]
+    text-white
+    px-4
+    py-2
+    rounded-lg
+    hover:opacity-90
+    transition
+    shadow-md
+    "
+  >
+    <img
+      src={tambahIcon}
+      alt="tambah"
+      className="w-4 h-4"
+    />
+    Tambah transaksi
+  </button>
+</div>
 
         {/* Table Section */}
-        <div className="px-8 mt-6 pb-4">
+        <div className="mt-6 pb-4">
         <div className="overflow-x-auto border border-gray-300 bg-white">
               <table className="w-full text-sm border-collapse">
               <thead className="bg-[#F8FAFC]">
@@ -231,7 +362,7 @@ const TransaksiPenjualan = () => {
         </div>
 
         {/* Pagination Controls - Tambahan agar bisa navigasi 380rb data */}
-        <div className="px-8 flex items-center justify-between mt-2 mb-10">
+        <div className="flex items-center justify-between mt-2 mb-10">
           <p className="text-sm text-slate-500">
             Menampilkan <span className="font-bold">{dataFiltered.length}</span> data per halaman (Total: {pagination.total?.toLocaleString('id-ID')} transaksi)
           </p>

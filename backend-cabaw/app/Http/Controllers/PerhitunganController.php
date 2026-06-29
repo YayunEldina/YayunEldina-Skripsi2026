@@ -493,16 +493,9 @@ class PerhitunganController extends Controller
 public function getRanking(Request $request)
 {
     $tahun = $request->query('tahun');
-    $bulan = $request->query('bulan');
 
-    $query = DB::table('hasil_perhitungan')
-        ->where('tahun', $tahun);
-
-    if ($bulan) {
-        $query->where('bulan', $bulan);
-    }
-
-    $data = $query
+    $data = DB::table('hasil_perhitungan')
+        ->where('tahun', $tahun)
         ->orderBy('ranking')
         ->get();
 

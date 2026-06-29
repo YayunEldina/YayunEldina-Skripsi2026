@@ -61,18 +61,18 @@ const Ranking = () => {
         <NavbarAdmin />
 
         <div className="px-10 mt-20">
-  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-    <div>
-      <h1 className="text-2xl font-bold text-slate-800">
-        Ranking Pelanggan
-      </h1>
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">
+                Ranking Pelanggan
+              </h1>
 
-      <p className="text-slate-500 text-sm mt-1">
-        Hasil prioritas pelanggan berdasarkan perhitungan Fuzzy TOPSIS
-      </p>
-    </div>
-  </div>
-</div>
+              <p className="text-slate-500 text-sm mt-1">
+                Hasil prioritas pelanggan berdasarkan perhitungan Fuzzy TOPSIS
+              </p>
+            </div>
+          </div>
+        </div>
 
        
 
