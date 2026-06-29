@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import NavbarAdmin from "../dashboard/navbar_admin";
-import TampilanElemen from "../dashboard/TampilanElemen";
+
 
 const Perhitungan = () => {
   const [dataHitung, setDataHitung] = useState(null);
+  const [generating, setGenerating] = useState(false);
   const [tahunTerpilih, setTahunTerpilih] = useState(() => {
     return localStorage.getItem("tahunPerhitungan") || "2025";
   });
@@ -28,7 +29,7 @@ const Perhitungan = () => {
     setLoading(true);
     try {
       // Mengonstruksi URL secara dinamis menggunakan parameter tahun dan bulan
-      let url = `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahun}`;
+      let url = `${import.meta.env.VITE_API_URL}/riwayat-perhitungan?tahun=${tahun}`;
 
       // Filter bulan hanya dikirimkan jika memilih tahun 2026
       if (tahun === "2026" && bulan) {
@@ -46,10 +47,34 @@ const Perhitungan = () => {
     }
   };
 
+  const generateData = async () => {
+    setGenerating(true);
+  
+    try {
+      let url =
+        `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahunTerpilih}`;
+  
+      if (tahunTerpilih === "2026" && bulanTerpilih) {
+        url += `&bulan=${bulanTerpilih}`;
+      }
+  
+      const response = await fetch(url);
+      const result = await response.json();
+  
+      if (result.status) {
+        await fetchData(tahunTerpilih, bulanTerpilih);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   // Masukkan tahunTerpilih dan bulanTerpilih sebagai dependency useEffect
   useEffect(() => {
     fetchData(tahunTerpilih, bulanTerpilih);
-  }, [tahunTerpilih, bulanTerpilih]);
+  }, []);
 
   const filterData = (data) => {
     if (!searchTerm) return data;
@@ -88,67 +113,169 @@ const Perhitungan = () => {
       <div className="flex-1">
         <NavbarAdmin />
 
-        <div className="pt-[70px] px-0">
-          <TampilanElemen
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-          />
-        </div>
+        <div className="px-10 mt-20">
+  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
 
-        <div className="px-8 mt-6 flex justify-between items-center">
-          <button className="bg-[#1E3A5F] text-white px-6 py-2 rounded-full text-sm font-medium">
-            Perhitungan Pelanggan 
-          </button>
-        </div>
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
-        {/* CONTAINER FILTER TAHUN & BULAN */}
-        <div className="flex flex-wrap items-center gap-4 px-8 mt-6">
-          {/* FILTER TAHUN */}
-          <div className="flex gap-2">
-            {["2021", "2022", "2023", "2024", "2025", "2026"].map((y, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  setTahunTerpilih(y);
-                  localStorage.setItem("tahunPerhitungan", y);
-                }}
-                className={`px-5 py-2 rounded-full border text-sm transition-all ${
-                  y === tahunTerpilih ? "bg-[#1E3A5F] text-white" : "bg-white text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {y}
-              </button>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">
+          Perhitungan Pelanggan
+        </h1>
+
+        <p className="text-slate-500 text-sm mt-1">
+          Generate dan lihat tahapan perhitungan Fuzzy TOPSIS
+        </p>
+      </div>
+
+      <button
+        onClick={generateData}
+        disabled={generating}
+        className="bg-[#1E3A5F] hover:bg-[#294972] text-white px-6 py-3 rounded-xl font-medium transition-all shadow-md disabled:opacity-50"
+      >
+        {generating ? (
+          "Generating..."
+        ) : (
+          "Generate Data"
+        )}
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+
+
+<div className="px-8 mt-5">
+  <div className="flex flex-wrap items-center gap-5">
+
+    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+      {/* KIRI */}
+      <div className="flex items-center flex-wrap gap-3">
+
+        <span className="text-sm font-medium text-slate-500">
+          {new Intl.DateTimeFormat("id-ID", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }).format(new Date())}
+        </span>
+
+        <div className="h-5 w-px bg-slate-300" />
+
+        {/* TAHUN */}
+        <select
+          value={tahunTerpilih}
+          onChange={(e) => {
+            const value = e.target.value;
+            setTahunTerpilih(value);
+            localStorage.setItem("tahunPerhitungan", value);
+          }}
+          className="
+            bg-white
+            border
+            border-slate-300
+            rounded-xl
+            px-4
+            py-2.5
+            text-sm
+            font-medium
+            text-slate-700
+            shadow-sm
+            focus:ring-2
+            focus:ring-[#1E3A5F]
+            focus:outline-none
+          "
+        >
+          {[2021, 2022, 2023, 2024, 2025, 2026].map((tahun) => (
+            <option key={tahun} value={tahun}>
+              {tahun}
+            </option>
+          ))}
+        </select>
+
+        {/* BULAN KHUSUS 2026 */}
+        {tahunTerpilih === "2026" && (
+          <select
+            value={bulanTerpilih}
+            onChange={(e) => {
+              setBulanTerpilih(e.target.value);
+              localStorage.setItem(
+                "bulanPerhitungan",
+                e.target.value
+              );
+            }}
+            className="
+              bg-white
+              border
+              border-slate-300
+              rounded-xl
+              px-4
+              py-2.5
+              text-sm
+              font-medium
+              text-slate-700
+              shadow-sm
+              focus:ring-2
+              focus:ring-[#1E3A5F]
+              focus:outline-none
+            "
+          >
+            {Object.entries(namaBulan).map(([num, name]) => (
+              <option key={num} value={num}>
+                {name}
+              </option>
             ))}
-          </div>
+          </select>
+        )}
 
-          {/* FILTER BULAN DINAMIS (Hanya tampil jika memilih tahun 2026) */}
-          {tahunTerpilih === "2026" && (
-            <div className="flex items-center gap-2 animate-fadeIn">
-              <label className="text-sm font-medium text-slate-600">Bulan:</label>
-              <select
-                value={bulanTerpilih}
-                onChange={(e) => {
-                  setBulanTerpilih(e.target.value);
-                  localStorage.setItem("bulanPerhitungan", e.target.value);
-                }}
-                className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-slate-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
-              >
-                {Object.entries(namaBulan).map(([num, name]) => (
-                  <option key={num} value={num}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+      </div>
 
-        {/* INFORMASI PERIODE AKTIF */}
-        <div className="px-8 mt-4">
-          <div className="text-sm font-semibold text-gray-500 bg-slate-50 inline-block px-4 py-1.5 rounded-md border border-slate-200">
-            Periode Data: <span className="text-[#1E3A5F]">{tahunTerpilih === "2026" ? `${namaBulan[bulanTerpilih]} 2026` : `Tahunan ${tahunTerpilih}`}</span>
-          </div>
-        </div>
+      {/* KANAN */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search alternatif..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="
+            w-72
+            pl-11
+            pr-4
+            py-2.5
+            bg-white
+            border
+            border-slate-300
+            rounded-xl
+            text-sm
+            focus:ring-2
+            focus:ring-[#1E3A5F]
+            focus:outline-none
+          "
+        />
+
+        <svg
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.5 5.5a7.5 7.5 0 0011.15 11.15z"
+          />
+        </svg>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
       {/* 3. MENU TAB MINIMALIS MELEBAR MEMENUHI LAYAR */}
 <div className="px-8 mt-6">

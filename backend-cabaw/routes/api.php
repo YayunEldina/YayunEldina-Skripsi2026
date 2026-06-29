@@ -39,6 +39,10 @@ Route::delete('/kriteria/{id}', [KriteriaController::class, 'destroy']);
 // Perhitungan & Sinkronisasi
 Route::get('/proses-perhitungan', [PerhitunganController::class, 'hitungFuzzyTopsis']);
 Route::post('/perhitungan/sinkronisasi', [PerhitunganController::class, 'sinkronisasiData']);
+Route::get(
+    '/riwayat-perhitungan',
+    [PerhitunganController::class, 'getRiwayatPerhitungan']
+);
 
 // Diskon
 // 🛒 FIX: Menangani pencarian data tahun dan bulan (termasuk IS NULL) secara murni & dinamis
