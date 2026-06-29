@@ -26,7 +26,8 @@ const Ranking = () => {
     setLoading(true);
     try {
       // 🔥 REVISI: Menggunakan kombinasi parameter tahun dan bulan secara dinamis
-      let url = `${import.meta.env.VITE_API_URL}/proses-perhitungan?tahun=${tahun}`;
+      let url =
+`${import.meta.env.VITE_API_URL}/ranking?tahun=${tahun}`;
       // Filter bulan hanya dikirimkan jika memilih tahun 2026
       if (tahun === "2026" && bulan) {
         url += `&bulan=${bulan}`;
@@ -35,7 +36,7 @@ const Ranking = () => {
       const response = await fetch(url);
       const result = await response.json();
 
-      setDataHitung(result.hasil_akhir || []);
+      setDataHitung(result.data || []);
     } catch (error) {
       console.error("Gagal memuat data ranking:", error);
     } finally {
@@ -59,61 +60,142 @@ const Ranking = () => {
       <div className="flex-1">
         <NavbarAdmin />
 
-        <div className="pt-[70px] px-0">
-          <TampilanElemen
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-          />
-        </div>
+        <div className="px-10 mt-20">
+  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+    <div>
+      <h1 className="text-2xl font-bold text-slate-800">
+        Ranking Pelanggan
+      </h1>
 
-        <div className="px-6 mt-6">
-          <button className="bg-[#1E3A5F] text-white px-6 py-2 rounded-full text-sm font-medium">
-            Ranking Pelanggan
-          </button>
-        </div>
+      <p className="text-slate-500 text-sm mt-1">
+        Hasil prioritas pelanggan berdasarkan perhitungan Fuzzy TOPSIS
+      </p>
+    </div>
+  </div>
+</div>
+
+       
 
         {/* CONTAINER FILTER TAHUN & BULAN */}
         <div className="flex flex-wrap items-center gap-4 px-8 mt-6">
-          {/* FILTER TAHUN */}
-          <div className="flex gap-2">
-            {["2021", "2022", "2023", "2024", "2025", "2026"].map((y, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  setTahunTerpilih(y);
-                  localStorage.setItem("tahunRanking", y);
-                }}
-                className={`px-5 py-2 rounded-full border text-sm transition ${
-                  y === tahunTerpilih
-                    ? "bg-[#1E3A5F] text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {y}
-              </button>
-            ))}
-          </div>
+        <div className="mt-5">
+  <div className="flex items-center flex-wrap gap-4">
 
-          {/* 🔥 TAMBAHAN: FILTER BULAN DINAMIS (Hanya tampil jika memilih tahun 2026) */}
-          {tahunTerpilih === "2026" && (
-            <div className="flex items-center gap-2 animate-fadeIn">
-              <label className="text-sm font-medium text-slate-600">Bulan:</label>
-              <select
-                value={bulanTerpilih}
-                onChange={(e) => {
-                  setBulanTerpilih(e.target.value);
-                  localStorage.setItem("bulanRanking", e.target.value);
-                }}
-                className="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-slate-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]"
-              >
-                {Object.entries(namaBulan).map(([num, name]) => (
-                  <option key={num} value={num}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+    <span className="text-sm font-medium text-slate-500">
+      {new Intl.DateTimeFormat("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date())}
+    </span>
+
+    <div className="h-5 w-px bg-slate-300" />
+
+    {/* Tahun */}
+    <select
+      value={tahunTerpilih}
+      onChange={(e) => {
+        setTahunTerpilih(e.target.value);
+        localStorage.setItem(
+          "tahunRanking",
+          e.target.value
+        );
+      }}
+      className="
+      bg-white
+      border
+      border-slate-300
+      rounded-xl
+      px-4
+      py-2.5
+      text-sm
+      shadow-sm
+      "
+    >
+      {[2021,2022,2023,2024,2025,2026].map((tahun) => (
+        <option
+          key={tahun}
+          value={tahun}
+        >
+          {tahun}
+        </option>
+      ))}
+    </select>
+
+    {/* Bulan */}
+    {tahunTerpilih === "2026" && (
+      <select
+        value={bulanTerpilih}
+        onChange={(e) => {
+          setBulanTerpilih(e.target.value);
+          localStorage.setItem(
+            "bulanRanking",
+            e.target.value
+          );
+        }}
+        className="
+        bg-white
+        border
+        border-slate-300
+        rounded-xl
+        px-4
+        py-2.5
+        text-sm
+        shadow-sm
+        "
+      >
+        {Object.entries(namaBulan).map(([num,name]) => (
+          <option
+            key={num}
+            value={num}
+          >
+            {name}
+          </option>
+        ))}
+      </select>
+    )}
+
+    {/* Search */}
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="Search alternatif..."
+        value={searchTerm}
+        onChange={(e) =>
+          setSearchTerm(e.target.value)
+        }
+        className="
+        w-72
+        pl-10
+        pr-4
+        py-2.5
+        border
+        border-slate-300
+        rounded-xl
+        text-sm
+        "
+      />
+
+      <svg
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.5 5.5a7.5 7.5 0 0011.15 11.15z"
+        />
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+        
         </div>
 
         <div className="px-6 pb-10 mt-6">
@@ -130,6 +212,7 @@ const Ranking = () => {
                 loading={loading}
                 headers={[
                   "Alternatif",
+                  "Total Pembelian (C1)",
                   "Preferensi (V)",
                   "Ranking",
                   "Prioritas Sistem",
@@ -137,9 +220,10 @@ const Ranking = () => {
                 ]}
                 rows={filteredData.map((item) => [
                   item.nama,
-                  (item.nilai_v || 0).toString().replace(".", ","),
-                  item.rank, 
-                  item.status_prioritas, 
+                  Number(item.total_pembelian || 0).toLocaleString("id-ID"),
+                  Number(item.nilai_v).toFixed(5).replace(".", ","),
+                  item.ranking,
+                  item.prioritas, 
                   `${item.diskon}%`, 
                 ])}
               />

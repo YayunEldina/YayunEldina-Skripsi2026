@@ -288,11 +288,19 @@ class PerhitunganController extends Controller
             // Cari ID Alternatif asli dari master database
             $idAlternatifAsli = isset($masterAlternatif[$keyAlt]) ? $masterAlternatif[$keyAlt]->id_alternatif : null;
 
+            $totalPembelian = 0;
+
+            for ($bln = 1; $bln <= 12; $bln++) {
+                $totalPembelian += $dataBulanan[$keyAlt][$bln]['c1'] ?? 0;
+            }
+            
             $hasilAkhir[] = [
                 'id_alternatif' => $idAlternatifAsli,
                 'nama' => $alt->nama_alternatif,
                 'pedagang' => $alt->pedagang,
-                // Memaksa format teks desimal selalu 5 digit di belakang koma
+            
+                'total_pembelian' => $totalPembelian,
+            
                 'nilai_v' => number_format($nilaiV, 5, '.', ''),
                 'd_plus' => number_format($dPlus, 5, '.', ''),
                 'd_min' => number_format($dMin, 5, '.', '')
@@ -369,6 +377,7 @@ class PerhitunganController extends Controller
                     'id_alternatif' => $item['id_alternatif'],
                     'nama' => strtolower(trim($item['nama'])),
                     'pedagang' => strtolower(trim($item['pedagang'] ?? '-')),
+                    'total_pembelian' => $item['total_pembelian'],
                     'nilai_v' => $item['nilai_v'],
                     'ranking' => $index + 1,
                     'diskon' => $item['diskon'],
@@ -478,6 +487,28 @@ class PerhitunganController extends Controller
         'matriks_fuzzy' => json_decode($data->matriks_fuzzy, true),
         'matriks_r' => json_decode($data->matriks_r, true),
         'hasil_akhir' => json_decode($data->hasil_akhir, true),
+    ]);
+}
+
+public function getRanking(Request $request)
+{
+    $tahun = $request->query('tahun');
+    $bulan = $request->query('bulan');
+
+    $query = DB::table('hasil_perhitungan')
+        ->where('tahun', $tahun);
+
+    if ($bulan) {
+        $query->where('bulan', $bulan);
+    }
+
+    $data = $query
+        ->orderBy('ranking')
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'data' => $data
     ]);
 }
 }

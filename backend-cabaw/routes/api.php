@@ -71,3 +71,5 @@ Route::get('/dashboard-summary', function () {
         'total_transaksi' => DB::table('transaksi')->count(),
     ]);
 });
+
+Route::get('/ranking', [PerhitunganController::class, 'getRanking']);
