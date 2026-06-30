@@ -105,18 +105,19 @@ console.log("ID ADMIN", user?.id_admin);
         let tahunSumber;
         let bulanSumber = null;
 
-        if (tahunPilihan === 2026 && bulanPilihan === 5) {
-          tahunSumber = 2025; // Mei 2026 mengambil database tahunan 2025
-        } else if (tahunPilihan === 2026 && bulanPilihan === 6) {
-          tahunSumber = 2026;
-          bulanSumber = 5;    // Juni 2026 mengambil hitungan Mei 2026
-        } else if (bulanPilihan === 1) {
-          tahunSumber = tahunPilihan - 1; 
-          bulanSumber = 12;
-        } else {
-          tahunSumber = tahunPilihan;
-          bulanSumber = bulanPilihan - 1; 
-        }
+        if (tahunPilihan === 2026 && bulanPilihan === 1) {
+          // Januari 2026 pakai ranking tahunan 2025
+          tahunSumber = 2025;
+          bulanSumber = null;
+      } else {
+          if (bulanPilihan === 1) {
+              tahunSumber = tahunPilihan - 1;
+              bulanSumber = 12;
+          } else {
+              tahunSumber = tahunPilihan;
+              bulanSumber = bulanPilihan - 1;
+          }
+      }
 
         const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;
         

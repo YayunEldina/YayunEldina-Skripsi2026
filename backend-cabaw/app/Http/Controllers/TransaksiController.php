@@ -138,13 +138,16 @@ class TransaksiController extends Controller
                 $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
                 $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
 
-                if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+                if ($tahunTransaksi == 2026 && $bulanTransaksi == 1) {
+
+                    // Januari 2026 menggunakan ranking tahunan 2025
                     $tahunSumber = 2025;
                     $bulanSumber = null;
-                }else if ($tahunTransaksi == 2026 && $bulanTransaksi == 6) {
-                    $tahunSumber = 2026;
-                    $bulanSumber = 5;
+                
                 } else {
+                
+                    // Bulan selain Januari menggunakan hasil bulan sebelumnya
+                
                     if ($bulanTransaksi == 1) {
                         $bulanSumber = 12;
                         $tahunSumber = $tahunTransaksi - 1;
@@ -156,10 +159,9 @@ class TransaksiController extends Controller
             
                 // Cek kuota pemakaian diskon pada bulan berjalan (Gunakan LOWER TRIM agar aman)
                 $sudahDapatDiskon = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
-                    ->whereRaw('LOWER(TRIM(pedagang)) = ?', [strtolower(trim($pedagangFinal))])
-                    ->whereYear('tanggal', $tahunTransaksi)
-                    ->whereMonth('tanggal', $bulanTransaksi)
-                    ->exists(); // ⚡ JELAS: Jika di bulan ini sudah ada transaksi apa pun, kunci kuotanya.
+                ->whereYear('tanggal', $tahunTransaksi)
+                ->whereMonth('tanggal', $bulanTransaksi)
+                ->exists();
 
                 // Tarik nilai diskon SPK dari tabel hasil_perhitungan
                 $dataDiskon = null;
@@ -337,13 +339,13 @@ class TransaksiController extends Controller
                 $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
                 $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
                 
-                if ($tahunTransaksi == 2026 && $bulanTransaksi == 5) {
+                if ($tahunTransaksi == 2026 && $bulanTransaksi == 1) {
+
                     $tahunSumber = 2025;
                     $bulanSumber = null;
-                } elseif ($tahunTransaksi == 2026 && $bulanTransaksi == 6) { // Tambahkan handling khusus Juni 2026 seperti pada fungsi store
-                    $tahunSumber = 2026;
-                    $bulanSumber = 5;
+                
                 } else {
+                
                     if ($bulanTransaksi == 1) {
                         $bulanSumber = 12;
                         $tahunSumber = $tahunTransaksi - 1;
@@ -355,7 +357,6 @@ class TransaksiController extends Controller
               
                 // Cek kuota transaksi LAIN yang sudah mengambil diskon di bulan ini
                 $transaksiPertama = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
-                ->whereRaw('LOWER(TRIM(pedagang)) = ?', [strtolower(trim($pedagangFinal))])
                 ->whereYear('tanggal', $tahunTransaksi)
                 ->whereMonth('tanggal', $bulanTransaksi)
                 ->orderBy('tanggal', 'asc')
@@ -566,13 +567,9 @@ foreach ($semuaData as $trx) {
     $tahunTransaksi = date('Y', strtotime($tanggal));
 
     $query = Transaksi::where('id_pelanggan', $id_pelanggan)
-        ->whereRaw(
-            'LOWER(TRIM(pedagang)) = ?',
-            [strtolower(trim($pedagang))]
-        )
-        ->whereYear('tanggal', $tahunTransaksi)
-        ->whereMonth('tanggal', $bulanTransaksi)
-        ->where('diskon', '>', 0);
+    ->whereYear('tanggal', $tahunTransaksi)
+    ->whereMonth('tanggal', $bulanTransaksi)
+    ->where('diskon', '>', 0);
 
     if ($id_transaksi) {
         $query->where('id_transaksi', '!=', $id_transaksi);

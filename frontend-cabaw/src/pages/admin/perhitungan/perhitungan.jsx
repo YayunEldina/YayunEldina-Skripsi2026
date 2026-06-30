@@ -11,7 +11,7 @@ const Perhitungan = () => {
   
   // State filter bulan (default "5" untuk Mei sesuai awal mula SPK bulanan)
   const [bulanTerpilih, setBulanTerpilih] = useState(() => {
-    return localStorage.getItem("bulanPerhitungan") || "5";
+    return localStorage.getItem("bulanPerhitungan") || "1";
   });
 
   const [loading, setLoading] = useState(true);
@@ -21,8 +21,18 @@ const Perhitungan = () => {
   const [activeTab, setActiveTab] = useState("fuzzy");
 
   const namaBulan = {
-    "5": "Mei", "6": "Juni", "7": "Juli", "8": "Agustus",
-    "9": "September", "10": "Oktober", "11": "November", "12": "Desember"
+    "1": "Januari",
+    "2": "Februari",
+    "3": "Maret",
+    "4": "April",
+    "5": "Mei",
+    "6": "Juni",
+    "7": "Juli",
+    "8": "Agustus",
+    "9": "September",
+    "10": "Oktober",
+    "11": "November",
+    "12": "Desember"
   };
 
   const fetchData = async (tahun, bulan) => {
@@ -74,7 +84,7 @@ const Perhitungan = () => {
   // Masukkan tahunTerpilih dan bulanTerpilih sebagai dependency useEffect
   useEffect(() => {
     fetchData(tahunTerpilih, bulanTerpilih);
-  }, []);
+  }, [tahunTerpilih, bulanTerpilih]);
 
   const filterData = (data) => {
     if (!searchTerm) return data;

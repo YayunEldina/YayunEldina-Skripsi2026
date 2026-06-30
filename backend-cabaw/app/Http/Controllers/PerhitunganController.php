@@ -73,7 +73,9 @@ class PerhitunganController extends Controller
         foreach ($alternatifs as $alt) {
             $keyAlt = $alt->id_pelanggan . '_' . strtolower(trim($alt->pedagang));
 
-            for ($bln = 1; $bln <= 12; $bln++) {
+            $bulanDiproses = $bulan ? [$bulan] : range(1, 12);
+
+            foreach ($bulanDiproses as $bln) {
                 $trx = DB::table('transaksi')
                     ->where('id_pelanggan', $alt->id_pelanggan)
                     ->whereRaw(
@@ -149,6 +151,17 @@ class PerhitunganController extends Controller
 
         foreach ($alternatifs as $alt) {
             $keyAlt = $alt->id_pelanggan . '_' . strtolower(trim($alt->pedagang));
+
+            if ($bulan) {
+
+                foreach (['C1','C2','C3','C4'] as $kode) {
+            
+                    $nilaiTahunan[$keyAlt][$kode] =
+                        $fuzzyBulanan[$keyAlt][$bulan][$kode];
+                }
+            
+                continue;
+            }
 
             $bulanAktif = 0;
             for ($bln = 1; $bln <= 12; $bln++) {
@@ -288,10 +301,19 @@ class PerhitunganController extends Controller
             // Cari ID Alternatif asli dari master database
             $idAlternatifAsli = isset($masterAlternatif[$keyAlt]) ? $masterAlternatif[$keyAlt]->id_alternatif : null;
 
-            $totalPembelian = 0;
+            if ($bulan) {
 
-            for ($bln = 1; $bln <= 12; $bln++) {
-                $totalPembelian += $dataBulanan[$keyAlt][$bln]['c1'] ?? 0;
+                $totalPembelian =
+                    $dataBulanan[$keyAlt][$bulan]['c1'] ?? 0;
+            
+            } else {
+            
+                $totalPembelian = 0;
+            
+                for ($bln = 1; $bln <= 12; $bln++) {
+                    $totalPembelian +=
+                        $dataBulanan[$keyAlt][$bln]['c1'] ?? 0;
+                }
             }
             
             $hasilAkhir[] = [
@@ -310,32 +332,51 @@ class PerhitunganController extends Controller
         // ========================================================
     // TEPAT DI SINI: POSISI KODE BARU UNTUK TIE-BREAKER C1
     // ========================================================
-    usort($hasilAkhir, function($a, $b) use ($dataBulanan, $alternatifs) {
-        // 1. Jika nilai Preferensi V berbeda, urutkan berdasarkan nilai V terbesar
+    usort($hasilAkhir, function($a, $b) use ($dataBulanan, $alternatifs, $bulan) {
+
+        // Ranking utama berdasarkan nilai V
         if ($b['nilai_v'] != $a['nilai_v']) {
             return $b['nilai_v'] <=> $a['nilai_v'];
         }
-
-        // 2. JIKA NILAI V KEMBAR (Sama-sama 1), Urutkan berdasarkan TOTAL PEMBELIAN RIIL (C1) selama 12 bulan
+    
         $altA = $alternatifs->firstWhere('nama_alternatif', $a['nama']);
         $altB = $alternatifs->firstWhere('nama_alternatif', $b['nama']);
-
-        $keyA = $altA ? $altA->id_pelanggan . '_' . strtolower(trim($altA->pedagang)) : '';
-        $keyB = $altB ? $altB->id_pelanggan . '_' . strtolower(trim($altB->pedagang)) : '';
-
-        // Hitung total pembelian riil (bukan fuzzy) dari bulan 1 - 12
-        $totalC1RiilA = 0;
-        $totalC1RiilB = 0;
-
-        for ($bln = 1; $bln <= 12; $bln++) {
-            $totalC1RiilA += $dataBulanan[$keyA][$bln]['c1'] ?? 0;
-            $totalC1RiilB += $dataBulanan[$keyB][$bln]['c1'] ?? 0;
+    
+        $keyA = $altA
+            ? $altA->id_pelanggan . '_' . strtolower(trim($altA->pedagang))
+            : '';
+    
+        $keyB = $altB
+            ? $altB->id_pelanggan . '_' . strtolower(trim($altB->pedagang))
+            : '';
+    
+        // Jika mode bulanan (2026)
+        if ($bulan) {
+    
+            $totalC1RiilA =
+                $dataBulanan[$keyA][$bulan]['c1'] ?? 0;
+    
+            $totalC1RiilB =
+                $dataBulanan[$keyB][$bulan]['c1'] ?? 0;
+    
+        } else {
+    
+            // Mode tahunan (2021-2025)
+            $totalC1RiilA = 0;
+            $totalC1RiilB = 0;
+    
+            for ($bln = 1; $bln <= 12; $bln++) {
+    
+                $totalC1RiilA +=
+                    $dataBulanan[$keyA][$bln]['c1'] ?? 0;
+    
+                $totalC1RiilB +=
+                    $dataBulanan[$keyB][$bln]['c1'] ?? 0;
+            }
         }
-
-        // Urutkan dari total pembelian riil yang paling besar (Agus & Juleha akan naik ke atas)
+    
         return $totalC1RiilB <=> $totalC1RiilA;
     });
-
 
         // ========================================================
         // 7. PENENTUAN KATEGORI PRIORITAS BERDASARKAN KUOTA
@@ -493,9 +534,16 @@ class PerhitunganController extends Controller
 public function getRanking(Request $request)
 {
     $tahun = $request->query('tahun');
+    $bulan = $request->query('bulan');
 
-    $data = DB::table('hasil_perhitungan')
-        ->where('tahun', $tahun)
+    $query = DB::table('hasil_perhitungan')
+        ->where('tahun', $tahun);
+
+    if ($bulan) {
+        $query->where('bulan', $bulan);
+    }
+
+    $data = $query
         ->orderBy('ranking')
         ->get();
 

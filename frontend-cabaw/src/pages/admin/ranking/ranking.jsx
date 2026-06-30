@@ -11,15 +11,25 @@ const Ranking = () => {
   
   // 🔥 TAMBAHAN: State filter bulan (default "5" untuk Mei sesuai awal SPK bulanan)
   const [bulanTerpilih, setBulanTerpilih] = useState(() => {
-    return localStorage.getItem("bulanRanking") || "5";
+    return localStorage.getItem("bulanRanking") || "1";
   });
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const namaBulan = {
-    "5": "Mei", "6": "Juni", "7": "Juli", "8": "Agustus",
-    "9": "September", "10": "Oktober", "11": "November", "12": "Desember"
+    "1": "Januari",
+    "2": "Februari",
+    "3": "Maret",
+    "4": "April",
+    "5": "Mei",
+    "6": "Juni",
+    "7": "Juli",
+    "8": "Agustus",
+    "9": "September",
+    "10": "Oktober",
+    "11": "November",
+    "12": "Desember"
   };
 
   const fetchData = async (tahun, bulan) => {
@@ -73,8 +83,6 @@ const Ranking = () => {
             </div>
           </div>
         </div>
-
-       
 
         {/* CONTAINER FILTER TAHUN & BULAN */}
         <div className="flex flex-wrap items-center gap-4 px-8 mt-6">

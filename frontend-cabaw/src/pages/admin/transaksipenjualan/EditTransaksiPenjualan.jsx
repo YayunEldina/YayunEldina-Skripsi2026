@@ -190,18 +190,24 @@ useEffect(() => {
 
       let tahunSumber;
       let bulanSumber = null;
-
-      if (tahunPilihan === 2026 && bulanPilihan === 5) {
+      
+      if (tahunPilihan === 2026 && bulanPilihan === 1) {
+      
+        // Januari 2026 memakai ranking tahunan 2025
         tahunSumber = 2025;
-      } else if (tahunPilihan === 2026 && bulanPilihan === 6) {
-        tahunSumber = 2026;
-        bulanSumber = 5;
-      } else if (bulanPilihan === 1) {
-        tahunSumber = tahunPilihan - 1;
-        bulanSumber = 12;
+        bulanSumber = null;
+      
       } else {
-        tahunSumber = tahunPilihan;
-        bulanSumber = bulanPilihan - 1;
+      
+        // Selain Januari memakai ranking bulan sebelumnya
+      
+        if (bulanPilihan === 1) {
+          tahunSumber = tahunPilihan - 1;
+          bulanSumber = 12;
+        } else {
+          tahunSumber = tahunPilihan;
+          bulanSumber = bulanPilihan - 1;
+        }
       }
 
       const idAlternatifKirim = selectedAlternatif?.id_alternatif || selectedAlternatif?.id;

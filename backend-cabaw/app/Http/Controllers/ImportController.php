@@ -144,8 +144,8 @@ class ImportController extends Controller
                 // DETAIL TRANSAKSI (INT)
                 // =========================
                 for ($j = 0; $j < 10; $j++) {
-                    $qty = (int)($line[8 + $j] ?? 0);
-
+                    $qty = (int)($line[7 + $j] ?? 0);
+                
                     if ($qty > 0) {
                         $allDetail[] = [
                             'id_detail'    => $dtCount++,
