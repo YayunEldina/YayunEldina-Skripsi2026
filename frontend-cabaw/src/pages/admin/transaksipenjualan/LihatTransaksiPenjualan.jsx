@@ -32,6 +32,10 @@ export default function LihatTransaksiPenjualan() {
   const [jumlah, setJumlah] = useState({});
 
   const [diskon, setDiskon] = useState(0);
+const [prioritas, setPrioritas] = useState("-");
+const [idAlternatif, setIdAlternatif] = useState(null);
+const [kuotaHabis, setKuotaHabis] = useState(false);
+const [isPelangganBaru, setIsPelangganBaru] = useState(false);
 
   const [harga] = useState("2500");
 
@@ -59,6 +63,15 @@ export default function LihatTransaksiPenjualan() {
 
         const data = res.data.data || res.data;
 
+        setIdAlternatif(data.id_alternatif);
+        if (Number(data.is_pelanggan_baru) === 1) {
+          setIsPelangganBaru(true);
+          setPrioritas("Pelanggan Baru");
+        } else {
+          setIsPelangganBaru(false);
+          setPrioritas("-");
+        }
+        
         setNamaPelanggan(
           data.pelanggan?.nama_pelanggan || ""
         );
@@ -110,6 +123,117 @@ export default function LihatTransaksiPenjualan() {
 
     if (id) fetchData();
   }, [id, navigate]);
+
+
+  useEffect(() => {
+    const getPrioritas = async () => {
+  
+      if (!tanggal || !idAlternatif) return;
+  
+      if (isPelangganBaru) {
+        setPrioritas("Pelanggan Baru");
+        return;
+      }
+  
+      try {
+  
+        const bulanTransaksi =
+          new Date(tanggal).getMonth() + 1;
+  
+        const tahunTransaksi =
+          new Date(tanggal).getFullYear();
+  
+        let tahunSumber;
+        let bulanSumber;
+  
+        if (
+          tahunTransaksi === 2026 &&
+          bulanTransaksi === 1
+        ) {
+          tahunSumber = 2025;
+          bulanSumber = null;
+        } else {
+          if (bulanTransaksi === 1) {
+            bulanSumber = 12;
+            tahunSumber = tahunTransaksi - 1;
+          } else {
+            bulanSumber = bulanTransaksi - 1;
+            tahunSumber = tahunTransaksi;
+          }
+        }
+  
+        // CEK KUOTA
+        const resKuota = await axios.get(
+          `${import.meta.env.VITE_API_URL}/transaksi/cek-kuota`,
+          {
+            params: {
+              id_pelanggan: idAlternatif,
+              pedagang: pedagang,
+              tanggal: tanggal,
+              id_transaksi: id,
+            },
+          }
+        );
+  
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/ranking`,
+          {
+            params: {
+              tahun: tahunSumber,
+              bulan: bulanSumber,
+            },
+          }
+        );
+  
+        const ranking = res.data.data || [];
+  
+        const found = ranking.find(
+          (item) =>
+            String(item.id_alternatif) ===
+            String(idAlternatif)
+        );
+  
+        if (found) {
+  
+          if (
+            resKuota.data?.sudah_transaksi === true
+          ) {
+  
+            setPrioritas(
+              `${found.prioritas} (Kuota Bulan Ini Habis)`
+            );
+  
+            setKuotaHabis(true);
+  
+          } else {
+  
+            setPrioritas(found.prioritas);
+  
+            setKuotaHabis(false);
+          }
+  
+        } else {
+  
+          setPrioritas(
+            "Pelanggan Lama (Tidak Ada di SPK)"
+          );
+  
+          setKuotaHabis(false);
+        }
+  
+      } catch (err) {
+        console.error(err);
+      }
+    };
+  
+    getPrioritas();
+  }, [
+    idAlternatif,
+    tanggal,
+    pedagang,
+    id,
+    isPelangganBaru,
+  ]);
 
   // ================= TOTAL =================
   const totalPembelian = useMemo(() => {
@@ -342,6 +466,8 @@ export default function LihatTransaksiPenjualan() {
 
                 </div>
 
+              
+
                 {/* TOTAL */}
                 <div className="mt-6 flex flex-col items-end text-right">
 
@@ -356,6 +482,26 @@ export default function LihatTransaksiPenjualan() {
                     Rp{" "}
                     {totalHarga.toLocaleString("id-ID")}
                   </p>
+
+                  <div className="mt-3">
+                    <span
+                      className={`px-2 py-1 rounded text-sm font-medium ${
+                        prioritas.includes("Kuota Bulan Ini Habis")
+                          ? "bg-red-100 text-red-700"
+                          : prioritas === "Prioritas Tinggi"
+                          ? "bg-green-100 text-green-700"
+                          : prioritas === "Prioritas Sedang"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : prioritas === "Prioritas Rendah"
+                          ? "bg-blue-100 text-blue-700"
+                          : prioritas === "Pelanggan Baru"
+                          ? "bg-gray-200 text-gray-600"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {prioritas}
+                    </span>
+                  </div>
 
                   <div className="mt-3">
 
