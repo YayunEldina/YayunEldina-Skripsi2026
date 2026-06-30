@@ -117,7 +117,7 @@ class TransaksiController extends Controller
                         'nama_pelanggan' => $request->nama_pelanggan,
                         'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
                         'password' => bcrypt('123456'),
-                        'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
+                        'jenis_kelamin' => null,
                         'alamat' => '-',
                         'no_telepon' => '0'
                     ]);
@@ -194,7 +194,8 @@ class TransaksiController extends Controller
                     'total_harga' => $request->total_harga,
                     'tempat_transaksi' => $request->tempat_transaksi,
                     'pedagang' => $pedagangFinal,
-                    'diskon' => $diskon
+                    'diskon' => $diskon,
+                    'is_pelanggan_baru' => $request->is_pelanggan_baru
                 ]);
 
                 // Simpan item belanja kerupuk
@@ -246,6 +247,7 @@ class TransaksiController extends Controller
         )->first();
     
         $data = $transaksi->toArray();
+        $data['is_pelanggan_baru'] = $transaksi->is_pelanggan_baru;
         $data['id_alternatif'] = $alternatif?->id_alternatif;
     
         return response()->json([
@@ -254,9 +256,6 @@ class TransaksiController extends Controller
         ]);
     }
 
-  /**
-     * Memperbarui data transaksi (Update) - REVISI PROTEKSI KUOTA DISKON
-     */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -264,88 +263,76 @@ class TransaksiController extends Controller
             'tanggal'        => 'required|date',
             'items'          => 'required|array',
         ]);
-
+    
         try {
             return DB::transaction(function () use ($request, $id) {
-
+    
                 $pedagangInput = trim($request->pedagang ?? '-');
                 $pedagangFinal = $pedagangInput === '' ? '-' : $pedagangInput;
-
+    
                 $transaksi = Transaksi::findOrFail($id);
                 
-                // Cari id_pelanggan yang tepat berdasarkan alternatif yang dikirim frontend jika ada
-                $id_pelanggan_final = $transaksi->id_pelanggan;
+                // Default status mengikuti status awal transaksi tersebut
+                $is_pelanggan_baru = $transaksi->is_pelanggan_baru; 
+                $pelanggan = null;
+    
                 if ($request->filled('id_alternatif') && $request->id_alternatif !== 'null' && $request->id_alternatif !== 'undefined') {
-                    $altCek = Alternatif::find($request->id_alternatif);
-                    if ($altCek) {
-                        $id_pelanggan_final = $altCek->id_pelanggan;
-                    }
-                }
-
-                $pelanggan = Pelanggan::find($id_pelanggan_final);
-
-                // ⚡ CEK APAKAH FORM RECONCILE SEBAGAI PELANGGAN BARU ATAU LAMA
-                if (!$request->filled('id_alternatif') || $request->id_alternatif === 'null' || $request->id_alternatif === 'undefined') {
-                    
-                    $cekAlternatifLain = Alternatif::where('id_pelanggan', $transaksi->id_pelanggan)->count();
-                    
-                    if ($pelanggan && $cekAlternatifLain <= 1) {
-                        $pelanggan->update([
-                            'nama_pelanggan' => $request->nama_pelanggan,
-                            'jenis_kelamin'  => $request->jenis_kelamin ?? 'Laki-laki',
-                        ]);
-                        Alternatif::where('id_pelanggan', $pelanggan->id_pelanggan)->update([
-                            'nama_alternatif' => $request->nama_pelanggan,
-                            'pedagang'        => $pedagangFinal
-                        ]);
-                    } else {
-                        $pelanggan = Pelanggan::create([
-                            'nama_pelanggan' => $request->nama_pelanggan,
-                            'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
-                            'password' => bcrypt('123456'),
-                            'jenis_kelamin' => $request->jenis_kelamin ?? 'Laki-laki',
-                            'alamat' => '-',
-                            'no_telepon' => '0'
-                        ]);
-
-                        $kodeBaru = (Alternatif::max('id_alternatif') ?? 0) + 1;
-                        Alternatif::create([
-                            'id_pelanggan'    => $pelanggan->id_pelanggan,
-                            'nama_alternatif' => $request->nama_pelanggan,
-                            'kode_alternatif' => $kodeBaru,
-                            'pedagang'        => $pedagangFinal
-                        ]);
-                    }
-                } else {
                     $alternatifPilihan = Alternatif::find($request->id_alternatif);
+    
                     if ($alternatifPilihan) {
                         $pelanggan = Pelanggan::find($alternatifPilihan->id_pelanggan);
+    
+                        // JIKA id_pelanggan yang dikirim BERBEDA dengan id_pelanggan asli di transaksi ini,
+                        // artinya kasir mengganti pelanggan ke data pelanggan lama yang sudah ada di sistem.
+                        if ($transaksi->id_pelanggan != $alternatifPilihan->id_pelanggan) {
+                            $is_pelanggan_baru = 0; // Berubah jadi pelanggan lama
+                        }
+    
+                        // Update data profil pelanggan & alternatif yang sedang berjalan
                         if ($pelanggan) {
                             $pelanggan->update([
-                                'nama_pelanggan' => $request->nama_pelanggan,
-                                'jenis_kelamin'  => $request->jenis_kelamin,
+                                'nama_pelanggan' => $request->nama_pelanggan
                             ]);
+    
                             $alternatifPilihan->update([
                                 'nama_alternatif' => $request->nama_pelanggan,
-                                'pedagang'        => $pedagangFinal
+                                'pedagang' => $pedagangFinal
                             ]);
                         }
                     }
+                } else {
+                    // JIKA id_alternatif kosong, artinya kasir mengetik nama baru lagi yang benar-benar fresh
+                    $pelanggan = Pelanggan::create([
+                        'nama_pelanggan' => $request->nama_pelanggan,
+                        'username' => 'user_' . strtolower(str_replace(' ', '', $request->nama_pelanggan)) . substr(time(), -4),
+                        'password' => bcrypt('123456'),
+                        'jenis_kelamin' => null,
+                        'alamat' => '-',
+                        'no_telepon' => '0'
+                    ]);
+    
+                    $kodeBaru = (Alternatif::max('id_alternatif') ?? 0) + 1;
+    
+                    Alternatif::create([
+                        'id_pelanggan'    => $pelanggan->id_pelanggan,
+                        'nama_alternatif' => $request->nama_pelanggan,
+                        'kode_alternatif' => $kodeBaru,
+                        'pedagang'        => $pedagangFinal
+                    ]);
+    
+                    $is_pelanggan_baru = 1; // Terdeteksi murni pelanggan baru baru
                 }
-
+    
                 // ======================================
-                // Hitung Ulang Perolehan Diskon SPK
+                // Hitung Ulang Perolehan Diskon SPK (Tetap biarkan code asli Anda di bawah ini)
                 // ======================================
                 $bulanTransaksi = (int) date('m', strtotime($request->tanggal));
                 $tahunTransaksi = (int) date('Y', strtotime($request->tanggal));
                 
                 if ($tahunTransaksi == 2026 && $bulanTransaksi == 1) {
-
                     $tahunSumber = 2025;
                     $bulanSumber = null;
-                
                 } else {
-                
                     if ($bulanTransaksi == 1) {
                         $bulanSumber = 12;
                         $tahunSumber = $tahunTransaksi - 1;
@@ -355,67 +342,35 @@ class TransaksiController extends Controller
                     }
                 }
               
-                // Cek kuota transaksi LAIN yang sudah mengambil diskon di bulan ini
                 $transaksiPertama = Transaksi::where('id_pelanggan', $pelanggan->id_pelanggan)
                 ->whereYear('tanggal', $tahunTransaksi)
                 ->whereMonth('tanggal', $bulanTransaksi)
                 ->orderBy('tanggal', 'asc')
                 ->orderBy('id_transaksi', 'asc')
                 ->first();
-
-                \Log::info('CEK TRANSAKSI PERTAMA', [
-                    'id_edit' => $id,
-                    'transaksi_pertama' => $transaksiPertama?->id_transaksi,
-                    'tanggal_pertama' => $transaksiPertama?->tanggal,
-                ]);
-
+    
                 $dataDiskon = null;
                 if ($request->filled('id_alternatif') && $request->id_alternatif !== 'null' && $request->id_alternatif !== 'undefined') {
                     $queryDiskon = DB::table('hasil_perhitungan')
                         ->where('id_alternatif', $request->id_alternatif)
                         ->where('tahun', $tahunSumber);
-
+    
                     if ($bulanSumber !== null) {
                         $queryDiskon->where('bulan', $bulanSumber);
                     }
-
+    
                     $dataDiskon = $queryDiskon->first();
                 }
-
-                // ======================================
-                // KUNCI LOGIKA BARU PENENTUAN DISKON
-                // ======================================
+    
                 $diskon = 0;
-
-                if (
-                    $request->filled('id_alternatif') &&
-                    $request->id_alternatif !== 'null' &&
-                    $request->id_alternatif !== 'undefined' &&
-                    isset($dataDiskon)
-                ) {
-                
-                    if (
-                        $transaksiPertama &&
-                        $transaksiPertama->id_transaksi == $id
-                    ) {
+                if ($request->filled('id_alternatif') && $request->id_alternatif !== 'null' && $request->id_alternatif !== 'undefined' && isset($dataDiskon)) {
+                    if ($transaksiPertama && $transaksiPertama->id_transaksi == $id) {
                         $diskon = (float) $dataDiskon->diskon;
                     } else {
                         $diskon = 0;
                     }
                 }
-
-                // ==========================================
-                // REVISI LOG: Ditambahkan sebelum proses save
-                // ==========================================
-                \Log::info('UPDATE TRANSAKSI CEK DISKON', [
-                    'id_transaksi'      => $transaksi->id_transaksi,
-                    'id_pelanggan'      => $pelanggan->id_pelanggan,
-                    'pedagang'          => $pedagangFinal,
-                    'diskon_lama'       => $transaksi->diskon,
-                    'transaksi_pertama' => $transaksiPertama?->id_transaksi,
-                    'diskon_baru'       => $diskon,
-                ]);
-
+    
                 // Eksekusi Update Transaksi Utama
                 $transaksi->update([
                     'id_pelanggan'     => $pelanggan->id_pelanggan,
@@ -425,18 +380,19 @@ class TransaksiController extends Controller
                     'tempat_transaksi' => $request->tempat_transaksi,
                     'pedagang'         => $pedagangFinal,  
                     'diskon'           => $diskon, 
+                    'is_pelanggan_baru'=> $is_pelanggan_baru, // Menggunakan variabel logika di atas
                 ]);
-
-                // Reset dan Simpan Ulang Detail Item
+    
+                // Reset dan Simpan Ulang Detail Item (Sisa code Anda ke bawah tetap sama)
                 DetailTransaksi::where('id_transaksi', $id)->delete();
                 $semuaProduk = Produk::pluck('id_produk', 'nama_produk')->toArray();
-
+    
                 foreach ($request->items as $item) {
                     $idProduk = $semuaProduk[$item['nama']] ?? null;
                     if (!$idProduk) {
                         throw new \Exception("Produk tidak ditemukan: " . $item['nama']);
                     }
-
+    
                     DetailTransaksi::create([
                         'id_transaksi' => $id,
                         'id_produk'    => $idProduk,
@@ -444,14 +400,14 @@ class TransaksiController extends Controller
                         'sub_total'    => $item['jumlah'] * ($request->harga_per_pcs ?? 2500),
                     ]);
                 }
-
+    
                 return response()->json([
                     'message' => 'Data transaksi berhasil diperbarui!',
                     'status'  => 'success',
                     'diskon'  => $diskon,
                 ], 200);
             });
-
+    
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal update: ' . $e->getMessage()], 500);
         }

@@ -26,7 +26,6 @@ console.log("ID ADMIN", user?.id_admin);
 
   const [activeFilter, setActiveFilter] = useState("Semua");
   const [namaPelanggan, setNamaPelanggan] = useState("");
-  const [jenisKelamin, setJenisKelamin] = useState("");
   const [tanggal, setTanggal] = useState("");
   const [tempatTransaksi, setTempatTransaksi] = useState("");
   const [pedagang, setPedagang] = useState("");
@@ -230,7 +229,6 @@ console.log("ID ADMIN", user?.id_admin);
     const payload = {
       id_admin: user.id_admin,
       nama_pelanggan: namaPelanggan,
-      jenis_kelamin: jenisKelamin,
       tanggal,
       tempat_transaksi: tempatTransaksi,
       pedagang: pedagang.trim() || "-", 
@@ -349,7 +347,8 @@ console.log("ID ADMIN", user?.id_admin);
                               setSelectedAlternatif(alt);
                               setNamaPelanggan(alt.nama_alternatif);
                               setPedagang(alt.pedagang);
-                              setIsNewFromDropdown(false); 
+                              setTempatTransaksi("Pasar Wage Panggul");
+                              setIsNewFromDropdown(false);
                               setShowDropdown(false);
                             }}
                             className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
@@ -387,11 +386,16 @@ console.log("ID ADMIN", user?.id_admin);
                                 className="bg-blue-600 text-white py-1 px-2 rounded text-sm w-full"
                                 onClick={() => {
                                   if (!tempNewName.trim()) return;
-                                  const newName = tempNewName.trim();
-                                  setNamaPelanggan(newName);
-                                  setPedagang(""); 
+                                
+                                  setNamaPelanggan(tempNewName.trim());
+                                  setPedagang("");
+                                
+                                  // otomatis isi
+                                  setTempatTransaksi("Pasar Wage Panggul");
+                                
                                   setSelectedAlternatif(null);
-                                  setIsNewFromDropdown(true); 
+                                  setIsNewFromDropdown(true);
+                                
                                   setTempNewName("");
                                   setIsAddingNewCustomer(false);
                                   setShowDropdown(false);
@@ -408,20 +412,18 @@ console.log("ID ADMIN", user?.id_admin);
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <label className="w-44 text-base font-medium text-gray-500">Jenis Kelamin</label>
-                  <select value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700">
-                    <option value="">Pilih jenis kelamin</option>
-                    <option>Laki-laki</option>
-                    <option>Perempuan</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Tanggal</label>
                   <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
                 </div>
                 <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Tempat Transaksi</label>
-                  <input type="text" value={tempatTransaksi} onChange={(e) => setTempatTransaksi(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" placeholder="Masukkan tempat transaksi" />
+                  <input
+                    type="text"
+                    value={tempatTransaksi}
+                    onChange={(e) => setTempatTransaksi(e.target.value)}
+                    className="flex-1 border rounded-lg px-3 py-2"
+                    placeholder="Masukkan tempat transaksi"
+                  />
                 </div>
                 <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Pedagang</label>

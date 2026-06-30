@@ -24,7 +24,6 @@ const EditTransaksiPenjualan = () => {
   const [activeFilter, setActiveFilter] = useState("Semua");
 
   const [namaPelanggan, setNamaPelanggan] = useState("");
-  const [jenisKelamin, setJenisKelamin] = useState("");
   const [tanggal, setTanggal] = useState("");
   const [tempatTransaksi, setTempatTransaksi] = useState("");
   const [pedagang, setPedagang] = useState("");
@@ -81,47 +80,43 @@ useEffect(() => {
       );
       const data = res.data.data || res.data;
 
+      console.log("=== DATA TRANSAKSI EDIT ===", data);
+
       const currentNama = data.pelanggan?.nama_pelanggan || data.nama_pelanggan || "";
-      const currentPedagang = (data.pedagang || "").trim(); // ✅ Fix Bug 3
+      const currentPedagang = (data.pedagang || "").trim();
 
       setNamaPelanggan(currentNama);
-      setJenisKelamin(data.pelanggan?.jenis_kelamin || data.jenis_kelamin || "");
       setTanggal(data.tanggal ? data.tanggal.split(" ")[0] : "");
       setTempatTransaksi(data.tempat_transaksi || "");
       setPedagang(currentPedagang);
 
-      // ✅ Fix Bug 1: Gunakan id_pelanggan saja, cocokkan ke alt.id_pelanggan
       const dbIdPelanggan = data.id_pelanggan;
-console.log("=== DEBUG EDIT ===");
-console.log("data.id_pelanggan:", dbIdPelanggan, typeof dbIdPelanggan);
-console.log("alternatifList sample:", alternatifList.slice(0, 3).map(a => ({
-  id_pelanggan: a.id_pelanggan,
-  tipe: typeof a.id_pelanggan,
-  nama: a.nama_alternatif
-})));
 
-const matchAlternatif = alternatifList.find(
-  (alt) => String(alt.id_pelanggan) === String(dbIdPelanggan)
-);
-console.log("matchAlternatif:", matchAlternatif);
-
-      if (!dbIdPelanggan) {
+      // =======================
+      // CEK STATUS ASLI DATABASE
+      // =======================
+      
+      if (Number(data.is_pelanggan_baru) === 1) {
+      
         setSelectedAlternatif(null);
         setIsNewFromDropdown(true);
+      
       } else {
+      
         const matchAlternatif = alternatifList.find(
           (alt) => String(alt.id_pelanggan) === String(dbIdPelanggan)
         );
-
+      
         if (matchAlternatif) {
           setSelectedAlternatif(matchAlternatif);
           setIsNewFromDropdown(false);
         } else {
           setSelectedAlternatif(null);
-          setIsNewFromDropdown(true);
+          setIsNewFromDropdown(false);
         }
       }
 
+      // Load produk yang dibeli
       const details = data.detail_transaksi || [];
       const itemsMap = {};
       const itemsList = [];
@@ -144,7 +139,7 @@ console.log("matchAlternatif:", matchAlternatif);
       navigate("/admin/transaksi");
     } finally {
       setLoading(false);
-      setIsDataLoaded(true); // ✅ Fix Bug 2: Tandai data sudah selesai di-load
+      setIsDataLoaded(true); // Menandakan data selesai di-load agar useEffect validasi diskon bisa berjalan
     }
   };
 
@@ -153,9 +148,13 @@ console.log("matchAlternatif:", matchAlternatif);
 
 // ================= VALIDASI DISKON & KUOTA SPK REALTIME =================
 useEffect(() => {
+
+  console.log("isNewFromDropdown", isNewFromDropdown);
+console.log("selectedAlternatif", selectedAlternatif);
+console.log("prioritas", prioritas);
   if (!isDataLoaded) return; // ✅ Fix Bug 2: Jangan jalan sebelum data siap
 
-  if (isNewFromDropdown || namaPelanggan === "Pelanggan Baru") {
+  if (isNewFromDropdown) {
     setDiskon(0);
     setPrioritas("Pelanggan Baru");
     setIsLoadingDiskon(false);
@@ -307,9 +306,10 @@ useEffect(() => {
       return;
     }
 
+    const isPelangganBaru = isNewFromDropdown;
+
     const payload = {
       nama_pelanggan: namaPelanggan,
-      jenis_kelamin: jenisKelamin,
       tanggal,
       tempat_transaksi: tempatTransaksi,
       pedagang: pedagang.trim() || "-",
@@ -317,6 +317,7 @@ useEffect(() => {
       total_harga: totalHarga,
       harga_per_pcs: 2500,
       diskon: diskon,
+      is_pelanggan_baru: isPelangganBaru ? 1 : 0,
       id_alternatif: selectedAlternatif ? selectedAlternatif.id_alternatif : "null",
       items: selectedKerupuk.map((item) => ({
         nama: item.name,
@@ -491,14 +492,6 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <label className="w-44 text-base font-medium text-gray-500">Jenis Kelamin</label>
-                  <select value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)} className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-700">
-                    <option value="">Pilih jenis kelamin</option>
-                    <option>Laki-laki</option>
-                    <option>Perempuan</option>
-                  </select>
-                </div>
                 <div className="flex items-center gap-4">
                   <label className="w-44 text-base font-medium text-gray-500">Tanggal</label>
                   <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 bg-white" />

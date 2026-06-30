@@ -24,7 +24,6 @@ export default function LihatTransaksiPenjualan() {
   const [activeFilter, setActiveFilter] = useState("Semua");
 
   const [namaPelanggan, setNamaPelanggan] = useState("");
-  const [jenisKelamin, setJenisKelamin] = useState("");
   const [tanggal, setTanggal] = useState("");
   const [tempatTransaksi, setTempatTransaksi] = useState("");
   const [pedagang, setPedagang] = useState("");
@@ -62,10 +61,6 @@ export default function LihatTransaksiPenjualan() {
 
         setNamaPelanggan(
           data.pelanggan?.nama_pelanggan || ""
-        );
-
-        setJenisKelamin(
-          data.pelanggan?.jenis_kelamin || ""
         );
 
         setTanggal(
@@ -256,19 +251,6 @@ export default function LihatTransaksiPenjualan() {
 
                   <input
                     value={namaPelanggan}
-                    readOnly
-                    className="flex-1 border rounded-lg px-3 py-2 bg-gray-100"
-                  />
-                </div>
-
-                {/* JENIS KELAMIN */}
-                <div className="flex items-center gap-4">
-                  <label className="w-44 text-base font-medium text-gray-500">
-                    Jenis Kelamin
-                  </label>
-
-                  <input
-                    value={jenisKelamin}
                     readOnly
                     className="flex-1 border rounded-lg px-3 py-2 bg-gray-100"
                   />
