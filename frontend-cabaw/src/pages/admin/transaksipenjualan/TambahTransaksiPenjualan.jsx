@@ -461,7 +461,20 @@ console.log("ID ADMIN", user?.id_admin);
                             setSelectedKerupuk(selectedKerupuk.filter((k) => k.name !== item.name));
                         }} className="bg-red-400 text-white px-2 py-1 rounded-md">🗑</button>
                         <button onClick={() => setJumlah({ ...jumlah, [item.name]: Math.max(1, (jumlah[item.name] || 1) - 1) })} className="bg-yellow-400 px-3 py-1 rounded-md">-</button>
-                        <input type="text" value={jumlah[item.name] ?? ""} readOnly className="w-10 text-center bg-transparent font-bold" />
+                        <input
+                            type="number"
+                            min="1"
+                            value={jumlah[item.name] ?? ""}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+
+                              setJumlah({
+                                ...jumlah,
+                                [item.name]: isNaN(value) || value < 1 ? 1 : value,
+                              });
+                            }}
+                            className="w-14 text-center border rounded-md font-bold bg-white"
+                          />
                         <button onClick={() => setJumlah({ ...jumlah, [item.name]: (jumlah[item.name] || 1) + 1 })} className="bg-yellow-400 px-3 py-1 rounded-md">+</button>
                       </div>
                     </div>
